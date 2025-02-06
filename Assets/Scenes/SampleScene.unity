@@ -230,7 +230,7 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 0
-  m_IsKinematic: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 126
   m_CollisionDetection: 0
@@ -250,7 +250,7 @@ BoxCollider:
     m_Bits: 0
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
-  m_ProvidesContacts: 0
+  m_ProvidesContacts: 1
   m_Enabled: 1
   serializedVersion: 3
   m_Size: {x: 10, y: 2.220446e-16, z: 10}
@@ -528,7 +528,7 @@ GameObject:
   - component: {fileID: 438102572}
   - component: {fileID: 438102573}
   m_Layer: 0
-  m_Name: Capsule
+  m_Name: TempPlayer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -665,7 +665,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad1f72eb9537c2f429e644aadb23d2d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  jumpForce: 12.5
+  jumpForce: 5
   isJump: 0
 --- !u!1 &832575517
 GameObject:

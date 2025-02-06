@@ -1,29 +1,38 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
+    //NOTE: Header adds titles for public variables in hierarchy. 
+    //The OnEnable, Awake, OnDisable, FixedUpdate, OnCollisionEnter CANNOT have their names chaged even for camelcase or they WONT work
     [SerializeField]
-    private InputSystem_Actions playerinputactions; //to store the input manager
-    //variables for unity new input system
-    private Vector2 moveInput;
-    private float rotationSpeed = 1f;
-    private float rotationY = 0f;
+    private InputSystem_Actions playerinputactions;
+    [Header("Movment Mechanics")]
+    public Vector2 moveInput;
+    public float moveSpeed = 1f;
+    public float rotationSpeed = 1f;
+    public float rotationY = 0f;
 
-    //jumpLogic
     [Header("Jump Mechanics")]
     public float jumpForce = 100f;
     public bool isJump;
 
-    void Awake(){
-        playerinputactions = new InputSystem_Actions(); //instantiate a input manager
+    [Header("Sprint Mechanics")]
+    public int stamina = 0;
+    public int maxStamina = 40;
+    public bool canSprint;
 
-        //for move actions basically just instantiates the move commands via script
-        //ctx stands for callback context look it up im too lazy to explain in comments
+    //Play on awake, sets up player input system then moves are being stored
+    void Awake()
+    {
+        playerinputactions = new InputSystem_Actions();
         playerinputactions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
         playerinputactions.Player.Move.canceled += ctx => moveInput = Vector2.zero;
-        playerinputactions.Player.Look.performed += ctx => Look(ctx);
-        playerinputactions.Player.Jump.performed += ctx => Jump();
+        playerinputactions.Player.Look.performed += ctx => look(ctx);
+        playerinputactions.Player.Jump.performed += ctx => jump();
+        playerinputactions.Player.Sprint.performed += ctx => sprintonthatThang(2f);
+        playerinputactions.Player.Sprint.canceled += ctx => sprintonthatThang(1f);
     }
 
     //when script is enabled in play mode
@@ -33,69 +42,122 @@ public class PlayerController : MonoBehaviour
     }
 
     //when script is disabled via scene change or unload
-    void OnDisable(){
+    void OnDisable()
+    {
         playerinputactions.Disable(); 
     }
 
-    //called every frame
-    void FixedUpdate(){
-        //propels movement via Rigidbodies velocity system
+    //called every frame, movement system via rigidbody and the playerinput
+    void FixedUpdate()
+    {
         this.GetComponent<Rigidbody>().freezeRotation = true;
-        if(moveInput.x > 0){
-            this.GetComponent<Rigidbody>().AddForce(500f * transform.right * Time.deltaTime);
+        if(canSprint && moveSpeed == 2 && stamina > 0)
+        {
+            stamina -=1;
         }
-        else if(moveInput.x < 0){
-            this.GetComponent<Rigidbody>().AddForce(500f * -transform.right * Time.deltaTime);
+        else
+        {
+            if(stamina <= 0)
+            {    
+                moveSpeed = 1f;
+                canSprint = false;
+            }
+            StartCoroutine(regainStamina());
         }
-        else if(moveInput.y > 0){
-            this.GetComponent<Rigidbody>().AddForce(500f * transform.forward * Time.deltaTime);
+        if(moveInput.x > 0)
+        {
+            this.GetComponent<Rigidbody>().AddForce(500f * transform.right * moveSpeed * Time.deltaTime);
+            
         }
-        else if(moveInput.y < 0){
-            this.GetComponent<Rigidbody>().AddForce(-500f * transform.forward * Time.deltaTime);
+        else if(moveInput.x < 0)
+        {
+            this.GetComponent<Rigidbody>().AddForce(500f * -transform.right * moveSpeed * Time.deltaTime);
+        }
+        else if(moveInput.y > 0)
+        {
+            this.GetComponent<Rigidbody>().AddForce(500f * transform.forward * moveSpeed * Time.deltaTime);
+        }
+        else if(moveInput.y < 0)
+        {
+            this.GetComponent<Rigidbody>().AddForce(-500f * transform.forward * moveSpeed * Time.deltaTime);
         }
         else{
             this.GetComponent<Rigidbody>().linearVelocity = new Vector2(0, this.GetComponent<Rigidbody>().linearVelocity.y);
         }
-        if(this.GetComponent<Rigidbody>().linearVelocity.y == 0){
+        if(this.GetComponent<Rigidbody>().linearVelocity.y == 0)
+        {
             isJump = false;
         }
         
     }
 
-    //it just rotates the player via calculated the rotation by position of the mouse and then using Quaternion
-    void Look(InputAction.CallbackContext ctx){
+    //Main method to 
+    void look(InputAction.CallbackContext ctx)
+    {
         this.GetComponent<Rigidbody>().freezeRotation = false;
         Vector2 mouseDelta = ctx.ReadValue<Vector2>();
 
-        rotationY += mouseDelta.x * rotationSpeed; //where 10 is the rotation speed
+        rotationY += mouseDelta.x * rotationSpeed;
 
         transform.rotation = Quaternion.Euler(0f, rotationY, 0f);
         this.GetComponent<Rigidbody>().freezeRotation = true;
 
     }
 
-    //ALL OF THIS IS JUMP LOGIC
-    private void Jump(){
+    //Jump logic, ERROR: player can jump twice? They arent supposed to jump unless they touch the ground
+    private void jump()
+    {
         if(!isJump){
-            Debug.Log("Jump pressed");
             isJump = true;
-            this.GetComponent<Rigidbody>().useGravity=false;
+            Debug.Log("Jump pressed");
+            
             this.GetComponent<Rigidbody>().AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-            this.GetComponent<Rigidbody>().useGravity=true;
+            stamina -=3;
         }
     }
 
-    private void OnCollisionEnter(Collision other){
+    //Checks if player is on ground
+    private void OnCollisionEnter(Collision other)
+    {
         if(other.gameObject.CompareTag("Ground") && other.gameObject.transform.position.y <= this.gameObject.transform.position.y){
             isJump = false;
         }
     }
 
-    //To do for next time when we get basic models
-    //implement sprint
-    //work on movement so it is from perpective of the camera
-    //enable crouch
-    //enable aiming methods
-    //fix camera setting-only for educational purposes
+    //sprint logic modifies movement speed in fixed update
+    private void sprintonthatThang(float i)
+    {
+        if(stamina <= 0){
+            moveSpeed = 1f;
+            StartCoroutine(regainStamina());
+            canSprint = false;
+        }
+        else{
+            moveSpeed = i;
+        }
+        
+    }
+
+    //stamina logic
+    private IEnumerator regainStamina()
+    {
+        if(stamina < 40)
+        {
+            stamina +=1;
+            yield return new WaitForSeconds(0.1f);
+            if(stamina == 40)
+            {
+                canSprint = true;
+            }
+        }
+        else{
+            yield return new WaitForSeconds(0.9f);
+        }
+        yield break;
+    }
+
+
+
+    //To do: crouch, aim, shoot
 
 }
