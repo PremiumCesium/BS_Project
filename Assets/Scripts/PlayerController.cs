@@ -4,15 +4,18 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
-    //NOTE: Header adds titles for public variables in hierarchy. 
-    //The OnEnable, Awake, OnDisable, FixedUpdate, OnCollisionEnter CANNOT have their names chaged even for camelcase or they WONT work
+    // NOTE: Header adds titles for public variables in hierarchy. 
+    // The OnEnable, Awake, OnDisable, FixedUpdate, OnCollisionEnter CANNOT have their names chaged even for camelcase or they WONT work
     [SerializeField]
-    private InputSystem_Actions playerinputactions;
-    [Header("Movment Mechanics")]
+    private InputSystem_Actions playerInputActions;
+    private Rigidbody playerRigidbody;
+    [Header("Movement Mechanics")]
     public Vector2 moveInput;
-    public float moveSpeed = 1f;
+    public float moveSpeed = 10f;
     public float rotationSpeed = 1f;
     public float rotationY = 0f;
+    public float dragCoefficient = 0.01f;
+    public float maxSpeed = 20f;
 
     [Header("Jump Mechanics")]
     public float jumpForce = 100f;
@@ -21,78 +24,58 @@ public class PlayerController : MonoBehaviour
     [Header("Sprint Mechanics")]
     public int stamina = 0;
     public int maxStamina = 40;
-    public bool canSprint;
-
-    //Play on awake, sets up player input system then moves are being stored
+    public int moveMultiplier = 1;
+    public bool canSprint = true;
+    
+    // Play on awake, sets up player input system then moves are being stored
     void Awake()
     {
-        playerinputactions = new InputSystem_Actions();
-        playerinputactions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
-        playerinputactions.Player.Move.canceled += ctx => moveInput = Vector2.zero;
-        playerinputactions.Player.Look.performed += ctx => look(ctx);
-        playerinputactions.Player.Jump.performed += ctx => jump();
-        playerinputactions.Player.Sprint.performed += ctx => sprintonthatThang(2f);
-        playerinputactions.Player.Sprint.canceled += ctx => sprintonthatThang(1f);
+        playerInputActions = new InputSystem_Actions();
+        playerInputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
+        playerInputActions.Player.Move.canceled += ctx => moveInput = Vector2.zero;
+        playerInputActions.Player.Look.performed += ctx => Look(ctx);
+        playerInputActions.Player.Jump.performed += ctx => Jump();
+        playerInputActions.Player.Sprint.performed += ctx => Sprint(2f);
+        playerInputActions.Player.Sprint.canceled += ctx => Sprint(1f);
+        
+        // Rigidbody Variables
+        playerRigidbody = GetComponent<Rigidbody>();
+        playerRigidbody.freezeRotation = true;
     }
 
-    //when script is enabled in play mode
+    // When script is enabled in play mode
     void OnEnable()
     {
-        playerinputactions.Enable(); 
+        playerInputActions.Enable(); 
     }
 
-    //when script is disabled via scene change or unload
+    // When script is disabled via scene change or unload
     void OnDisable()
     {
-        playerinputactions.Disable(); 
+        playerInputActions.Disable(); 
     }
 
-    //called every frame, movement system via rigidbody and the playerinput
+    // Called every frame, movement system via rigidbody and the playerinput
     void FixedUpdate()
     {
-        this.GetComponent<Rigidbody>().freezeRotation = true;
-        if(canSprint && moveSpeed == 2 && stamina > 0)
-        {
-            stamina -=1;
-        }
-        else
-        {
-            if(stamina <= 0)
-            {    
-                moveSpeed = 1f;
-                canSprint = false;
-            }
-            StartCoroutine(regainStamina());
-        }
-        if(moveInput.x > 0)
-        {
-            this.GetComponent<Rigidbody>().AddForce(500f * transform.right * moveSpeed * Time.deltaTime);
-            
-        }
-        else if(moveInput.x < 0)
-        {
-            this.GetComponent<Rigidbody>().AddForce(500f * -transform.right * moveSpeed * Time.deltaTime);
-        }
-        else if(moveInput.y > 0)
-        {
-            this.GetComponent<Rigidbody>().AddForce(500f * transform.forward * moveSpeed * Time.deltaTime);
-        }
-        else if(moveInput.y < 0)
-        {
-            this.GetComponent<Rigidbody>().AddForce(-500f * transform.forward * moveSpeed * Time.deltaTime);
-        }
-        else{
-            this.GetComponent<Rigidbody>().linearVelocity = new Vector2(0, this.GetComponent<Rigidbody>().linearVelocity.y);
-        }
-        if(this.GetComponent<Rigidbody>().linearVelocity.y == 0)
-        {
-            isJump = false;
-        }
+        Move();
+    }
+    
+    // Movement Code
+    private void Move()
+    {
+        Vector3 wishDirection = Vector3.Normalize(new Vector3(moveInput.x, 0, moveInput.y));
+        wishDirection = transform.rotation * wishDirection;
+        Vector3 force = wishDirection * (moveSpeed * moveMultiplier);
         
+        playerRigidbody.AddForce(force, ForceMode.Impulse);
+        
+        // Ensures the player will EVENTUALLY slow down, otherwise the player will be unable to stop to go AFK
+        playerRigidbody.linearVelocity *= 1 - dragCoefficient;
     }
 
-    //Main method to 
-    void look(InputAction.CallbackContext ctx)
+    // Looking
+    private void Look(InputAction.CallbackContext ctx)
     {
         this.GetComponent<Rigidbody>().freezeRotation = false;
         Vector2 mouseDelta = ctx.ReadValue<Vector2>();
@@ -104,8 +87,8 @@ public class PlayerController : MonoBehaviour
 
     }
 
-    //Jump logic, ERROR: player can jump twice? They arent supposed to jump unless they touch the ground
-    private void jump()
+    // Jump logic, ERROR: player can jump twice? They arent supposed to jump unless they touch the ground
+    private void Jump()
     {
         if(!isJump){
             isJump = true;
@@ -125,11 +108,11 @@ public class PlayerController : MonoBehaviour
     }
 
     //sprint logic modifies movement speed in fixed update
-    private void sprintonthatThang(float i)
+    private void Sprint(float i)
     {
         if(stamina <= 0){
             moveSpeed = 1f;
-            StartCoroutine(regainStamina());
+            StartCoroutine(RegainStamina());
             canSprint = false;
         }
         else{
@@ -138,8 +121,8 @@ public class PlayerController : MonoBehaviour
         
     }
 
-    //stamina logic
-    private IEnumerator regainStamina()
+    // Stamina logic
+    private IEnumerator RegainStamina()
     {
         if(stamina < 40)
         {
@@ -158,6 +141,6 @@ public class PlayerController : MonoBehaviour
 
 
 
-    //To do: crouch, aim, shoot
+    // To do: crouch, aim, shoot and the rest of the game :/
 
 }
