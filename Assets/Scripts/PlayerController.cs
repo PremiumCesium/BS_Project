@@ -1,6 +1,8 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
 
 public class PlayerController : MonoBehaviour
 {
@@ -14,6 +16,7 @@ public class PlayerController : MonoBehaviour
     public float moveSpeed = 10f;
     public float rotationSpeed = 1f;
     public float rotationY = 0f;
+    public float rotationX = 0f;
     public float dragCoefficient = 0.01f;
     public float maxSpeed = 20f;
 
@@ -26,10 +29,22 @@ public class PlayerController : MonoBehaviour
     public int maxStamina = 40;
     public int moveMultiplier = 1;
     public bool canSprint = true;
+
+    [Header("GunMechanics")]
+    private Camera fpsCam;
+    public TextMeshProUGUI ammoText;
+    public List<WeaponClass> weapons;
+    public WeaponClass currEquip;
+    public GameObject cloneWepMod;
+    public GameObject hand;
+    public int totalAmmo;
     
-    // Play on awake, sets up player input system then moves are being stored
+    // Play on awake, sets up player input system then moves are being stored, also initializes weapon system
     void Awake()
     {
+        currEquip = weapons[0];
+        SwitchedGuns();
+        fpsCam = Camera.main;
         playerInputActions = new InputSystem_Actions();
         playerInputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
         playerInputActions.Player.Move.canceled += ctx => moveInput = Vector2.zero;
@@ -37,6 +52,8 @@ public class PlayerController : MonoBehaviour
         playerInputActions.Player.Jump.performed += ctx => Jump();
         playerInputActions.Player.Sprint.performed += ctx => Sprint(2f);
         playerInputActions.Player.Sprint.canceled += ctx => Sprint(1f);
+        playerInputActions.Player.FireGun.performed += ctx => StartFiring();
+        playerInputActions.Player.Reload.performed += ctx => StartCoroutine(Reload());
         
         // Rigidbody Variables
         playerRigidbody = GetComponent<Rigidbody>();
@@ -81,8 +98,10 @@ public class PlayerController : MonoBehaviour
         Vector2 mouseDelta = ctx.ReadValue<Vector2>();
 
         rotationY += mouseDelta.x * rotationSpeed;
+        float tempY = (mouseDelta.y > -40 && mouseDelta.y < 70) ? mouseDelta.y * rotationSpeed : 0;
+        rotationX = Mathf.Clamp(tempY + rotationX, -40, 70);
 
-        transform.rotation = Quaternion.Euler(0f, rotationY, 0f);
+        transform.rotation = Quaternion.Euler(rotationX, rotationY, 0f);
         this.GetComponent<Rigidbody>().freezeRotation = true;
 
     }
@@ -138,6 +157,56 @@ public class PlayerController : MonoBehaviour
         }
         yield break;
     }
+
+    //Firing Logic-At ScriptibleObjectLayer-using raycast logic
+    private void StartFiring()
+    {
+        if(currEquip.currRounds > 0){
+            RaycastHit hit;
+            if(Physics.Raycast(fpsCam.transform.position, fpsCam.transform.forward, out hit, currEquip.range)){
+                Debug.Log(hit.transform.name);
+            }
+            currEquip.currRounds -= 1;
+            ammoText.text = "Ammo: " + currEquip.currRounds;
+            Debug.Log(currEquip.currRounds);
+        }
+
+    }
+
+    //swtiching guns logic - Should we may it overlayed on screen? if so how?
+    void SwitchedGuns()
+    {
+        ammoText.text = "Ammo: " + currEquip.currRounds;
+        if(cloneWepMod != null){
+            Destroy(cloneWepMod);
+            cloneWepMod = null;
+            
+        }
+        cloneWepMod = Instantiate(currEquip.gunModel, hand.transform.position, transform.rotation);
+        cloneWepMod.transform.SetParent(hand.transform);
+    }
+
+    
+    //Reloading logic
+    private IEnumerator Reload()
+    {
+        Debug.Log("Starting Reload wait " + currEquip.reloadTime +  " seconds");
+        yield return new WaitForSeconds((float) currEquip.reloadTime);
+        int deduct = (currEquip.maxRounds - currEquip.currRounds);
+        int reloaded = 0;
+        if(totalAmmo - deduct >= 0)
+        {
+            currEquip.currRounds += deduct;
+            totalAmmo -= deduct;
+        }
+        else
+        {
+            currEquip.currRounds += totalAmmo;
+            totalAmmo = 0;
+        }
+    }
+
+
 
 
 
