@@ -764,6 +764,7 @@ MonoBehaviour:
   currEquip: {fileID: 0}
   cloneWepMod: {fileID: 0}
   hand: {fileID: 1835028293}
+  lastShootTime: 0
   totalAmmo: 100
 --- !u!1 &832575517
 GameObject:
