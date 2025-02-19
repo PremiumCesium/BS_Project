@@ -37,7 +37,9 @@ public class PlayerController : MonoBehaviour
     public WeaponClass currEquip;
     public GameObject cloneWepMod;
     public GameObject hand;
+    public float lastShootTime;
     public int totalAmmo;
+    
 
     // Play on awake, sets up player input system then moves are being stored, also initializes weapon system
     private void Awake()
@@ -172,18 +174,67 @@ public class PlayerController : MonoBehaviour
     //Firing Logic-At ScriptableObjectLayer-using raycast logic
     private void StartFiring()
     {
-        if (currEquip.currRounds <= 0) return;
-
-
-        RaycastHit hit;
-        if (Physics.Raycast(fpsCam.transform.position,
-                fpsCam.transform.forward, out hit, currEquip.range))
+        //implementing secret object pooling technique
+        if(lastShootTime + currEquip.fps < Time.time)
         {
-            Debug.Log(hit.transform.name);
-        }
+            if (currEquip.currRounds <= 0) return;
+            Vector3 shotDirection = GetDirection();
 
-        currEquip.currRounds -= 1;
-        ammoText.text = "Ammo: " + currEquip.currRounds;
+
+            RaycastHit hit;
+            if (Physics.Raycast(fpsCam.transform.position,
+                    fpsCam.transform.forward, out hit, currEquip.range))
+            {
+                TrailRenderer trail = Instantiate(currEquip.bulletTrail, cloneWepMod.transform.position, Quaternion.identity);
+
+                StartCoroutine(SpawnOnThatThang(trail, hit));
+                Debug.Log(hit.transform.name);
+                
+                lastShootTime = Time.time;
+            }
+
+            currEquip.currRounds -= 1;
+            ammoText.text = "Ammo: " + currEquip.currRounds;
+        }
+    }
+
+    //for bulletspread: if no bulletspread, then the bullets shoot forward, else random spread
+    private Vector3 GetDirection()
+    {
+        Vector3 direction = transform.forward;
+        if(currEquip.bulletSpread)
+        {
+            direction += new Vector3(
+                Random.Range(-currEquip.bulletVariance.x, currEquip.bulletVariance.x),
+                Random.Range(-currEquip.bulletVariance.y, currEquip.bulletVariance.y),
+                Random.Range(-currEquip.bulletVariance.z, currEquip.bulletVariance.z)
+            );
+
+            direction.Normalize();
+        }
+        
+        return direction;
+    }
+
+    //random Trailgenerator
+    private IEnumerator SpawnOnThatThang(TrailRenderer trail, RaycastHit hit)
+    {
+        float time = 0;
+        Vector3 startPosition = trail.transform.position;
+
+        while (time < 1)
+        {
+            trail.transform.position = Vector3.Lerp(startPosition, hit.point, time);
+            time += Time.deltaTime / trail.time;
+            yield return null;
+        }
+        
+        trail.transform.position = hit.point;
+        Instantiate(currEquip.impactParticleSystem, hit.point, Quaternion.LookRotation(hit.normal));
+
+        Destroy(trail.gameObject, trail.time);
+        
+
     }
 
     // Switching guns logic - Should we may it overlay on screen? if so how?

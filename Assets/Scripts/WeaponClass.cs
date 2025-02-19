@@ -7,11 +7,19 @@ public class WeaponClass : ScriptableObject
     public int damage;
     public int maxRounds;
     public int currRounds;
-    public int frps;
     public int reloadTime;
     public float range;
+    
 
     public GameObject gunModel;
+
+    //Gun logic
+    public ParticleSystem impactParticleSystem;
+    public TrailRenderer bulletTrail;
+    public float fps;
+    //bulletspread logic
+    public Vector3 bulletVariance;
+    public bool bulletSpread;
 
     //for later add model reference as object too
 }
