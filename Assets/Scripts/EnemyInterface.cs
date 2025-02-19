@@ -1,10 +1,10 @@
 using UnityEngine;
 
-interface EnemyInterface
+public interface EnemyInterface
 {
-    // int HP;
+    int HP { get; set;}
 
-    // void TakeDamage();
+    void TakeDamage(int amount);
 
-    // //If you can think of anything else put it here
+    //If you can think of anything else put it here
 }

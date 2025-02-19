@@ -13,6 +13,7 @@ public class PlayerController : MonoBehaviour
     // Player references
     private InputSystem_Actions playerInputActions;
     private Rigidbody playerRigidbody;
+    private WeaponClass currentWeapon;
 
     [Header("Movement Mechanics")] 
     public Vector2 moveInput;
@@ -57,9 +58,9 @@ public class PlayerController : MonoBehaviour
         playerInputActions.Player.Jump.performed += ctx => Jump();
         playerInputActions.Player.Sprint.performed += ctx => Sprint(2f);
         playerInputActions.Player.Sprint.canceled += ctx => Sprint(1f);
-        playerInputActions.Player.FireGun.performed += ctx => StartFiring();
-        playerInputActions.Player.Reload.performed +=
-            ctx => StartCoroutine(Reload());
+        playerInputActions.Player.FireGun.performed += ctx => currentWeapon.Fire();
+        //playerInputActions.Player.Reload.performed +=
+         //   ctx => StartCoroutine(Reload());
 
         // Rigidbody Variables
         playerRigidbody = GetComponent<Rigidbody>();
@@ -170,34 +171,13 @@ public class PlayerController : MonoBehaviour
             yield return new WaitForSeconds(0.9f);
         }
     }
-
+/*
     //Firing Logic-At ScriptableObjectLayer-using raycast logic
     private void StartFiring()
     {
-        //implementing secret object pooling technique
-        if(lastShootTime + currEquip.fps < Time.time)
-        {
-            if (currEquip.currRounds <= 0) return;
-            Vector3 shotDirection = GetDirection();
-
-
-            RaycastHit hit;
-            if (Physics.Raycast(fpsCam.transform.position,
-                    fpsCam.transform.forward, out hit, currEquip.range))
-            {
-                TrailRenderer trail = Instantiate(currEquip.bulletTrail, cloneWepMod.transform.position, Quaternion.identity);
-
-                StartCoroutine(SpawnOnThatThang(trail, hit));
-                Debug.Log(hit.transform.name);
-                
-                lastShootTime = Time.time;
-            }
-
-            currEquip.currRounds -= 1;
-            ammoText.text = "Ammo: " + currEquip.currRounds;
-        }
+        
     }
-
+/*
     //for bulletspread: if no bulletspread, then the bullets shoot forward, else random spread
     private Vector3 GetDirection()
     {
@@ -216,7 +196,8 @@ public class PlayerController : MonoBehaviour
         return direction;
     }
 
-    //random Trailgenerator
+    /*
+    //random Trailgenerator 
     private IEnumerator SpawnOnThatThang(TrailRenderer trail, RaycastHit hit)
     {
         float time = 0;
@@ -227,7 +208,7 @@ public class PlayerController : MonoBehaviour
             trail.transform.position = Vector3.Lerp(startPosition, hit.point, time);
             time += Time.deltaTime / trail.time;
             yield return null;
-        }
+        } 
         
         trail.transform.position = hit.point;
         Instantiate(currEquip.impactParticleSystem, hit.point, Quaternion.LookRotation(hit.normal));
@@ -236,24 +217,27 @@ public class PlayerController : MonoBehaviour
         
 
     }
+    */
 
     // Switching guns logic - Should we may it overlay on screen? if so how?
     private void SwitchedGuns()
     {
+        currentWeapon = this.GetComponentInChildren<WeaponClass>();
+        
         ammoText.text = "Ammo: " + currEquip.currRounds;
-        if (cloneWepMod != null)
-        {
-            Destroy(cloneWepMod);
-            cloneWepMod = null;
-        }
+        //if (cloneWepMod != null)
+        //{
+         //   Destroy(cloneWepMod);
+          //  cloneWepMod = null;
+        //}
 
-        cloneWepMod = Instantiate(currEquip.gunModel, hand.transform.position,
-            transform.rotation);
-        cloneWepMod.transform.SetParent(hand.transform);
+        //cloneWepMod = Instantiate(currEquip.gunModel, hand.transform.position,
+         //   transform.rotation);
+        //cloneWepMod.transform.SetParent(hand.transform);
     }
 
-
-    // Reloading logic
+/*
+    // Reloading logic 
     private IEnumerator Reload()
     {
         Debug.Log("Starting Reload wait " + currEquip.reloadTime + " seconds");
@@ -269,7 +253,10 @@ public class PlayerController : MonoBehaviour
             currEquip.currRounds += totalAmmo;
             totalAmmo = 0;
         }
+        
+        ammoText.text = "Ammo: " + currEquip.currRounds;
     }
+    */
 
 
     // To do: crouch, aim, shoot and the rest of the game :/
