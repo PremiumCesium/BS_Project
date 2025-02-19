@@ -189,6 +189,10 @@ public class PlayerController : MonoBehaviour
 
                 StartCoroutine(SpawnOnThatThang(trail, hit));
                 Debug.Log(hit.transform.name);
+                if(hit.transform.gameObject.GetComponent<EnemyInterface>() != null)
+                {
+                    hit.transform.gameObject.GetComponent<EnemyInterface>().TakeDamage(currEquip.damage);
+                }
                 
                 lastShootTime = Time.time;
             }
