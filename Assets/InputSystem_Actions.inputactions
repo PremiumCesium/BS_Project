@@ -533,17 +533,6 @@
                 },
                 {
                     "name": "",
-                    "id": "0e3867fb-ef17-4129-85d6-b7a2a54b5c22",
-                    "path": "<Mouse>/scroll",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Switch",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "7d25c43a-f433-4f14-a612-93322520cee9",
                     "path": "<Keyboard>/h",
                     "interactions": "",

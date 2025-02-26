@@ -27,7 +27,7 @@ public class WeaponClass : MonoBehaviour //ScriptableObject
 
     //for later add model reference as object too
 
-
+    public bool isReloading;
     private float lastShootTime;
     public Camera playerCamera;
 
@@ -143,5 +143,27 @@ public class WeaponClass : MonoBehaviour //ScriptableObject
         Instantiate(impactParticleSystem, hit.point, Quaternion.LookRotation(hit.normal));
 
         Destroy(trail.gameObject, trail.time);
+    }
+
+    public IEnumerator Reload()
+    {
+        if (isReloading) yield break;
+        if (isMelee) yield break;
+        
+        isReloading = true;
+        Debug.Log("Starting Reload wait " + reloadTime + " seconds");
+        yield return new WaitForSeconds((float)reloadTime);
+        
+        int missingRounds = maxRounds - currRounds;
+        int reloadAmount = Mathf.Min(missingRounds, playerController.totalAmmo);
+        
+        if (reloadAmount > 0)
+        {
+            playerController.totalAmmo -= reloadAmount; 
+            currRounds += reloadAmount;
+        }
+        
+        isReloading = false;
+        playerController.ammoText.text = "Ammo: " + currRounds;
     }
 }

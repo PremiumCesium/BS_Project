@@ -39,7 +39,6 @@ public class PlayerController : MonoBehaviour
     public GameObject currEquip;
     public GameObject cloneWepMod;
     public GameObject hand;
-    public float lastShootTime;
     public int currentGunIndex;
     public int totalAmmo;
     public WeaponClass wp;
@@ -54,26 +53,33 @@ public class PlayerController : MonoBehaviour
     // Play on awake, sets up player input system then moves are being stored, also initializes weapon system
     private void Awake()
     {
-        Cursor.lockState = CursorLockMode.Locked;
-        currEquip = weapons[currentGunIndex];
-        SwitchedGuns();
-        fpsCam = Camera.main;
+        
+        
+        // Instantiate Input System
         playerInputActions = new InputSystem_Actions();
-        playerInputActions.Player.Move.performed +=
-            ctx => moveInput = ctx.ReadValue<Vector2>();
-        playerInputActions.Player.Move.canceled +=
-            ctx => moveInput = Vector2.zero;
+        
+        // Input callbacks
+        playerInputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
+        playerInputActions.Player.Move.canceled += ctx => moveInput = Vector2.zero;
         playerInputActions.Player.Look.performed += ctx => Look(ctx);
         playerInputActions.Player.Jump.performed += ctx => Jump();
         playerInputActions.Player.Sprint.performed += ctx => Sprint(2f);
         playerInputActions.Player.Sprint.canceled += ctx => Sprint(1f);
         playerInputActions.Player.FireGun.performed += ctx => fireCurrentWeapon();
-        playerInputActions.Player.Reload.performed +=
-           ctx => StartCoroutine(Reload());
+        playerInputActions.Player.Reload.performed += ctx => StartCoroutine(wp.Reload());
         playerInputActions.Player.Switch.performed += ctx => OnScroll(ctx);
+        
+        // Player callbacks
         playerInputActions.Player.Heal.performed += ctx => StartCoroutine(Heal());
     
+        // Player variables 
+        fpsCam = Camera.main;
+        
+        currEquip = weapons[currentGunIndex];
+        SwitchedGuns();
+        
 
+        Cursor.lockState = CursorLockMode.Locked;
 
         // Rigidbody Variables
         playerRigidbody = GetComponent<Rigidbody>();
@@ -222,63 +228,10 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-/*
-
-    //Firing Logic-At ScriptableObjectLayer-using raycast logic
-    private void StartFiring()
-    {
-        
-    }
-/*
-    //for bulletspread: if no bulletspread, then the bullets shoot forward, else random spread
-    private Vector3 GetDirection()
-    {
-        Vector3 direction = transform.forward;
-        if(currEquip.bulletSpread)
-        {
-            direction += new Vector3(
-                Random.Range(-currEquip.bulletVariance.x, currEquip.bulletVariance.x),
-                Random.Range(-currEquip.bulletVariance.y, currEquip.bulletVariance.y),
-                Random.Range(-currEquip.bulletVariance.z, currEquip.bulletVariance.z)
-            );
-
-            direction.Normalize();
-        }
-        
-        return direction;
-    }
-
-    /*
-    //random Trailgenerator 
-    private IEnumerator SpawnOnThatThang(TrailRenderer trail, RaycastHit hit)
-    {
-        float time = 0;
-        Vector3 startPosition = trail.transform.position;
-
-        while (time < 1)
-        {
-            trail.transform.position = Vector3.Lerp(startPosition, hit.point, time);
-            time += Time.deltaTime / trail.time;
-            yield return null;
-        } 
-        
-        trail.transform.position = hit.point;
-        Instantiate(currEquip.impactParticleSystem, hit.point, Quaternion.LookRotation(hit.normal));
-
-        Destroy(trail.gameObject, trail.time);
-        
-
-    }
-
-
     // Switching guns logic - Should we may it overlay on screen? if so how?
     private void SwitchedGuns()
     {
-
-
-        // currentWeapon = this.GetComponentInChildren<WeaponClass>();
-        
-        if (cloneWepMod != null)
+        if (cloneWepMod)
         {
            Destroy(cloneWepMod);
            cloneWepMod = null;
@@ -297,27 +250,7 @@ public class PlayerController : MonoBehaviour
     // Reloading logic 
 
 
-    private IEnumerator Reload()
-    {   
-        if(!wp.isMelee)
-        {
-            Debug.Log("Starting Reload wait " + wp.reloadTime + " seconds");
-            yield return new WaitForSeconds((float)wp.reloadTime);
-            int deduct = (wp.maxRounds - wp.currRounds);
-            if (totalAmmo - deduct >= 0)
-            {
-                wp.currRounds += deduct;
-                totalAmmo -= deduct;
-            }
-            else
-            {
-                wp.currRounds += totalAmmo;
-                totalAmmo = 0;
-            }
-            
-            ammoText.text = "Ammo: " + wp.currRounds;
-        }
-    }
+    
 
     //Heal Stuff-will add slider logic when I have time
     private IEnumerator Heal()
