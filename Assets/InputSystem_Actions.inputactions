@@ -92,13 +92,31 @@
                     "id": "593ca724-2ba1-405b-9e24-bd260014da16",
                     "expectedControlType": "",
                     "processors": "",
-                    "interactions": "Press",
+                    "interactions": "Hold,Press",
                     "initialStateCheck": false
                 },
                 {
                     "name": "Reload",
                     "type": "Button",
                     "id": "d67f0f41-f5a0-4e7b-94bd-c2d0156072d9",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Switch",
+                    "type": "Value",
+                    "id": "e0d97ff6-517b-45bf-97bd-a99b459e1b04",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "Heal",
+                    "type": "Button",
+                    "id": "532889d2-bbe9-4074-80b4-c0d2c0a1dca2",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -510,6 +528,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "Reload",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0e3867fb-ef17-4129-85d6-b7a2a54b5c22",
+                    "path": "<Mouse>/scroll",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Switch",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "7d25c43a-f433-4f14-a612-93322520cee9",
+                    "path": "<Keyboard>/h",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Heal",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

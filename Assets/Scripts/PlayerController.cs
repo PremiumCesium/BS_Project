@@ -32,21 +32,30 @@ public class PlayerController : MonoBehaviour
     public int moveMultiplier = 1;
     public bool canSprint = true;
 
-    [Header("GunMechanics")] private Camera fpsCam;
+    [Header("GunMechanics")] public Camera fpsCam;
     public TextMeshProUGUI ammoText;
-    public List<WeaponClass> weapons;
-    public WeaponClass currEquip;
+    public TextMeshProUGUI gunText;
+    public List<GameObject> weapons;
+    public GameObject currEquip;
     public GameObject cloneWepMod;
     public GameObject hand;
     public float lastShootTime;
+    public int currentGunIndex;
     public int totalAmmo;
+    public WeaponClass wp;
+
+    [Header("HealTest")]
+    public TextMeshProUGUI healthText;
+    public int HP;
+    public int healAmount;
+    public bool canHeal;
     
 
     // Play on awake, sets up player input system then moves are being stored, also initializes weapon system
     private void Awake()
     {
         Cursor.lockState = CursorLockMode.Locked;
-        currEquip = weapons[0];
+        currEquip = weapons[currentGunIndex];
         SwitchedGuns();
         fpsCam = Camera.main;
         playerInputActions = new InputSystem_Actions();
@@ -58,9 +67,13 @@ public class PlayerController : MonoBehaviour
         playerInputActions.Player.Jump.performed += ctx => Jump();
         playerInputActions.Player.Sprint.performed += ctx => Sprint(2f);
         playerInputActions.Player.Sprint.canceled += ctx => Sprint(1f);
-        playerInputActions.Player.FireGun.performed += ctx => currentWeapon.Fire();
-        //playerInputActions.Player.Reload.performed +=
-         //   ctx => StartCoroutine(Reload());
+        playerInputActions.Player.FireGun.performed += ctx => fireCurrentWeapon();
+        playerInputActions.Player.Reload.performed +=
+           ctx => StartCoroutine(Reload());
+        playerInputActions.Player.Switch.performed += ctx => OnScroll(ctx);
+        playerInputActions.Player.Heal.performed += ctx => StartCoroutine(Heal());
+    
+
 
         // Rigidbody Variables
         playerRigidbody = GetComponent<Rigidbody>();
@@ -79,10 +92,34 @@ public class PlayerController : MonoBehaviour
         playerInputActions.Disable();
     }
 
+    
+
+    private void OnScroll(InputAction.CallbackContext ctx)
+    {
+        Vector2 scrollDelta = ctx.ReadValue<Vector2>();
+        float scrollY = scrollDelta.y; // Vertical scrolling
+
+        Debug.Log($"Mouse Scroll: Vertical = {scrollY}");
+
+        currentGunIndex = (scrollY > 1) ? currentGunIndex +1 : currentGunIndex -1;
+        currentGunIndex = (currentGunIndex < 0) ? (weapons.Count - 1) : currentGunIndex;
+        currentGunIndex = (currentGunIndex >= weapons.Count) ? 0 : currentGunIndex;
+        currEquip = weapons[currentGunIndex];
+        SwitchedGuns();
+
+    }
+
     // Called every frame, movement system via rigidbody and the playerinput
     private void FixedUpdate()
     {
         Move();
+        if(playerInputActions.Player.FireGun.IsPressed() && wp != null)
+        {
+            if(wp.currRounds > 0)
+            {
+                wp.Fire();
+            }
+        }
     }
 
     // Movement Code
@@ -139,6 +176,19 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    //Fixed fire call to solve ctx issue
+    private void fireCurrentWeapon()
+    {
+        if(cloneWepMod != null && wp != null)
+        {
+            wp.Fire();
+        }
+        else
+        {
+            Debug.Log("No weapon equipped");
+        }
+    }
+
     //sprint logic modifies movement speed in fixed update
     private void Sprint(float i)
     {
@@ -171,7 +221,9 @@ public class PlayerController : MonoBehaviour
             yield return new WaitForSeconds(0.9f);
         }
     }
+
 /*
+
     //Firing Logic-At ScriptableObjectLayer-using raycast logic
     private void StartFiring()
     {
@@ -217,46 +269,85 @@ public class PlayerController : MonoBehaviour
         
 
     }
-    */
+
 
     // Switching guns logic - Should we may it overlay on screen? if so how?
     private void SwitchedGuns()
     {
-        currentWeapon = this.GetComponentInChildren<WeaponClass>();
-        
-        ammoText.text = "Ammo: " + currEquip.currRounds;
-        //if (cloneWepMod != null)
-        //{
-         //   Destroy(cloneWepMod);
-          //  cloneWepMod = null;
-        //}
 
-        //cloneWepMod = Instantiate(currEquip.gunModel, hand.transform.position,
-         //   transform.rotation);
-        //cloneWepMod.transform.SetParent(hand.transform);
+
+        // currentWeapon = this.GetComponentInChildren<WeaponClass>();
+        
+        if (cloneWepMod != null)
+        {
+           Destroy(cloneWepMod);
+           cloneWepMod = null;
+        }
+
+        cloneWepMod = Instantiate(currEquip, hand.transform.position,
+           transform.rotation);
+        cloneWepMod.transform.SetParent(hand.transform);
+        wp = cloneWepMod.GetComponent<WeaponClass>();
+        gunText.text = (wp.isMelee) ? "Weapon:" + wp.gunName : "Gun: " + wp.gunName;
+        ammoText.text = (wp.isMelee) ? "Infinite" :"Ammo: " + wp.currRounds;
+        wp.playerCamera = Camera.main;
+        wp.playerController = this;
     }
 
-/*
     // Reloading logic 
+
+
     private IEnumerator Reload()
-    {
-        Debug.Log("Starting Reload wait " + currEquip.reloadTime + " seconds");
-        yield return new WaitForSeconds((float)currEquip.reloadTime);
-        int deduct = (currEquip.maxRounds - currEquip.currRounds);
-        if (totalAmmo - deduct >= 0)
+    {   
+        if(!wp.isMelee)
         {
-            currEquip.currRounds += deduct;
-            totalAmmo -= deduct;
+            Debug.Log("Starting Reload wait " + wp.reloadTime + " seconds");
+            yield return new WaitForSeconds((float)wp.reloadTime);
+            int deduct = (wp.maxRounds - wp.currRounds);
+            if (totalAmmo - deduct >= 0)
+            {
+                wp.currRounds += deduct;
+                totalAmmo -= deduct;
+            }
+            else
+            {
+                wp.currRounds += totalAmmo;
+                totalAmmo = 0;
+            }
+            
+            ammoText.text = "Ammo: " + wp.currRounds;
         }
-        else
-        {
-            currEquip.currRounds += totalAmmo;
-            totalAmmo = 0;
-        }
-        
-        ammoText.text = "Ammo: " + currEquip.currRounds;
     }
-    */
+
+    //Heal Stuff-will add slider logic when I have time
+    private IEnumerator Heal()
+    {
+        if(healAmount > 0)
+        {
+            if(canHeal)
+            {
+                Debug.Log("Healing");
+                HP += (HP + 10 > 0) ? 0: 10; //temp
+                healthText.text = "HP: " + HP;
+                yield return new WaitForSeconds(1f);
+            }
+            else
+            {
+                Debug.Log("Stopped");
+            }
+            
+        }
+        yield break;
+    }
+
+    //Take Damage From attacks
+    private IEnumerator TakeDamage()
+    {
+        Debug.Log("Damage");
+        yield break;
+    }
+    
+
 
 
     // To do: crouch, aim, shoot and the rest of the game :/

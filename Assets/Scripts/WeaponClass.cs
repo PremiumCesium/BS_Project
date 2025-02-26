@@ -27,8 +27,10 @@ public class WeaponClass : MonoBehaviour //ScriptableObject
 
     //for later add model reference as object too
 
+
     private float lastShootTime;
-    private Camera playerCamera;
+    public Camera playerCamera;
+
     public PlayerController playerController;
     
     private void Awake()
@@ -39,41 +41,74 @@ public class WeaponClass : MonoBehaviour //ScriptableObject
 
     public void Fire()
     {
-        Debug.Log("Fired");
-        //implementing secret object pooling technique
-        if(lastShootTime + fps < Time.time)
+        if(!isMelee)
         {
-            Debug.Log("Fired2");
-            if (currRounds <= 0) return;
-            Vector3 shotDirection = GetDirection();
-            TrailRenderer trail = Instantiate(bulletTrail, transform.position, Quaternion.identity);
-            if (Physics.Raycast(playerCamera.transform.position,
-                    playerCamera.transform.forward, out RaycastHit hit, range))
+            if(currRounds > 0)
             {
-                StartCoroutine(SpawnOnThatThang(trail, hit));
-                Debug.Log(hit.transform.name);
-                if(hit.transform.gameObject.GetComponent<EnemyInterface>() != null)
+                Debug.Log("Fired");
+                //implementing secret object pooling technique
+                if(lastShootTime + fps < Time.time)
                 {
-                    hit.transform.gameObject.GetComponent<EnemyInterface>().TakeDamage(damage);
+                    Debug.Log("Fired2");
+                    if (currRounds <= 0) return;
+                    Vector3 shotDirection = GetDirection();
+                    TrailRenderer trail = Instantiate(bulletTrail, transform.position, Quaternion.identity);
+                    if (Physics.Raycast(playerCamera.transform.position,
+                            playerCamera.transform.forward, out RaycastHit hit, range))
+                    {
+                        StartCoroutine(SpawnOnThatThang(trail, hit));
+                        Debug.Log(hit.transform.name);
+                        if(hit.transform.gameObject.GetComponent<EnemyInterface>() != null)
+                        {
+                            hit.transform.gameObject.GetComponent<EnemyInterface>().TakeDamage(damage);
+                        }
+                        
+                        lastShootTime = Time.time;
+                    }
+
+                    
+
+                    RaycastHit fakeHit = new RaycastHit();
+                    fakeHit.point = playerCamera.transform.forward * 1000;
+                    StartCoroutine(SpawnOnThatThang(trail, fakeHit));
                 }
-                
+                currRounds -= 1;
+                playerController.ammoText.text = "Ammo: " +  currRounds.ToString();
+            }
+            else
+            {
+                Debug.Log("Out of Ammo");
+            }
+        }
+        else
+        {
+            if(lastShootTime + fps < Time.time)
+            {
+                Debug.Log("Started Swinging");
+                if (Physics.Raycast(playerCamera.transform.position,
+                                playerCamera.transform.forward, out RaycastHit hit, range))
+                {
+                    Debug.Log(hit.transform.name);
+                    if(hit.transform.gameObject.GetComponent<EnemyInterface>() != null)
+                    {
+                        hit.transform.gameObject.GetComponent<EnemyInterface>().TakeDamage(damage * (int)playerController.GetComponent<Rigidbody>().
+                            linearVelocity.x);
+                    }
+
+
+                }
+                else if (Physics.SphereCast(playerCamera.transform.position, 1, 
+                    playerCamera.transform.forward, out RaycastHit hittwo, range))
+                {
+                    Debug.Log("Hit: " + hittwo.transform.name);
+                }
                 lastShootTime = Time.time;
             }
-
-            currRounds -= 1;
-
-            RaycastHit fakeHit = new RaycastHit();
-            fakeHit.point = playerCamera.transform.forward * 1000;
-            StartCoroutine(SpawnOnThatThang(trail, fakeHit));
         }
-        playerController.ammoText.text = "Ammo: " +  currRounds.ToString();
-    }
-
-    public void Reload()
-    {
         
     }
-    
+
+
     private Vector3 GetDirection()
     {
         Vector3 direction = transform.forward;

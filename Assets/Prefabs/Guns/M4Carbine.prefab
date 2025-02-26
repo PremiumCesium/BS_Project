@@ -11,8 +11,9 @@ GameObject:
   - component: {fileID: 8045630925313956985}
   - component: {fileID: 2480553018359890747}
   - component: {fileID: 3512297469976408586}
+  - component: {fileID: 3167954494716050972}
   m_Layer: 0
-  m_Name: TempGun
+  m_Name: M4Carbine
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -86,3 +87,30 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3167954494716050972
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8594162202919013409}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e23930a6dca7a3f4c9bed301e7eddd71, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isMelee: 0
+  gunName: M4 Carbine
+  damage: 50
+  maxRounds: 20
+  currRounds: 20
+  reloadTime: 3
+  range: 50
+  gunModel: {fileID: 8594162202919013409}
+  impactParticleSystem: {fileID: 7781247778994770712, guid: 293c82be290d6c240aa92c077766e37c, type: 3}
+  bulletTrail: {fileID: 8915521244497187083, guid: 3df870907be943a4a9c74c60857ae720, type: 3}
+  fps: 150
+  bulletVariance: {x: 0, y: 0, z: 0}
+  bulletSpread: 0
+  playerCamera: {fileID: 0}
+  playerController: {fileID: 0}
