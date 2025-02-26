@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -10,6 +11,7 @@ public class CloseEnemy : MonoBehaviour, EnemyInterface
 
     public void TakeDamage(int amount)
     {
+        Debug.Log(amount);
         HP -= amount;
         Debug.Log(HP);
         Debug.Log(amount);

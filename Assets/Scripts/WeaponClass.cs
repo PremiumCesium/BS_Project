@@ -1,8 +1,13 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
-[CreateAssetMenu(fileName = "Data", menuName = "ScriptableObjects/Weapons", order = 1)]
-public class WeaponClass : ScriptableObject
+//[CreateAssetMenu(fileName = "Data", menuName = "ScriptableObjects/Weapons", order = 1)]
+public class WeaponClass : MonoBehaviour //ScriptableObject
 {
+    public bool isMelee;
     public string gunName;
     public int damage;
     public int maxRounds;
@@ -10,7 +15,6 @@ public class WeaponClass : ScriptableObject
     public int reloadTime;
     public float range;
     
-
     public GameObject gunModel;
 
     //Gun logic
@@ -22,11 +26,11 @@ public class WeaponClass : ScriptableObject
     public bool bulletSpread;
 
     //for later add model reference as object too
-<<<<<<< Updated upstream
-=======
+
 
     private float lastShootTime;
     public Camera playerCamera;
+
     public PlayerController playerController;
     
     private void Awake()
@@ -104,7 +108,7 @@ public class WeaponClass : ScriptableObject
         
     }
 
-    
+
     private Vector3 GetDirection()
     {
         Vector3 direction = transform.forward;
@@ -140,5 +144,4 @@ public class WeaponClass : ScriptableObject
 
         Destroy(trail.gameObject, trail.time);
     }
->>>>>>> Stashed changes
 }
