@@ -3,21 +3,19 @@ using UnityEngine;
 
 public class HealBed : MonoBehaviour
 {
-    private GameObject player;
-    private PlayerController playerController;
+    public GameObject player;
+    public PlayerController playerController;
     private Coroutine healingCoroutine;
+    public int healAmount = 5;
 
-    private void Awake()
-    {
-        player = GameObject.FindGameObjectWithTag("Player");
-        playerController = player.GetComponent<PlayerController>();
-    }
-
+    //Cleaned it up a bit-So this uses start and stop coroutine to loop a continuously looping thang
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject != player) return;
+        player = other.gameObject;
+        if(player.GetComponent<PlayerController>() == null) return;
         Debug.Log("Player entered heal bed.");
-        healingCoroutine = StartCoroutine(HealPlayer());
+        healingCoroutine =  StartCoroutine(player.GetComponent<PlayerController>().HealPlayer(healAmount));
+        
     }
 
     private void OnTriggerExit(Collider other)
@@ -28,13 +26,13 @@ public class HealBed : MonoBehaviour
         healingCoroutine = null;
     }
 
-    private IEnumerator HealPlayer()
-    {
-        while (true)
-        {
-            playerController.health += 5;
-            playerController.healthText.text = "HP: " + playerController.health;
-            yield return new WaitForSeconds(1f);
-        }
-    }
+    // private IEnumerator HealPlayer()
+    // {
+    //     while (true)
+    //     {
+    //         playerController.health += 5;
+    //         playerController.healthText.text = "HP: " + playerController.health;
+    //         yield return new WaitForSeconds(1f);
+    //     }
+    // }
 }

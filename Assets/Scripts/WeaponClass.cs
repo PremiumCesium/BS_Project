@@ -23,7 +23,7 @@ public class WeaponClass : MonoBehaviour //ScriptableObject
     private bool isReloading;
     private float lastShootTime;
     private Camera playerCamera;
-    private PlayerController playerController;
+    public PlayerController playerController;
     
     // Visuals
     public GameObject gunModel;
@@ -33,11 +33,11 @@ public class WeaponClass : MonoBehaviour //ScriptableObject
     private void Awake()
     {
         playerCamera = Camera.main;
-        playerController = GameObject.FindWithTag("Player").GetComponent<PlayerController>();
     }
 
     public void Fire()
     {
+        if(playerController.isPaused) return;
         if(!isMelee)
         {
             if (currRounds <= 0) return;

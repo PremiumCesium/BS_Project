@@ -21,6 +21,7 @@ public class PlayerController : MonoBehaviour
     public float rotationX;
     public float dragCoefficient = 0.01f;
     public float maxSpeed = 20f;
+    public float hitboxHeight;
 
     [Header("Jump Mechanics")] 
     public float jumpForce = 100f;
@@ -46,7 +47,10 @@ public class PlayerController : MonoBehaviour
     public TextMeshProUGUI healthText;
     public int health = 100;
     public int maxHealth = 100;
-    
+
+    [Header("Pausing")]
+    public GameObject pauseMenu;
+    public bool isPaused;
     // Play on awake, sets up player input system then moves are being stored, also initializes weapon system
     private void Awake()
     {
@@ -64,9 +68,12 @@ public class PlayerController : MonoBehaviour
         playerInputActions.Player.Jump.performed += _ => Jump();
         playerInputActions.Player.Sprint.performed += _ => Sprint(2f);
         playerInputActions.Player.Sprint.canceled += _ => Sprint(1f);
-        playerInputActions.Player.FireGun.performed += _ => FireCurrentWeapon();
+        playerInputActions.Player.FireGun.performed += _ => currentWeapon.GetComponent<WeaponClass>().Fire();
         playerInputActions.Player.Reload.performed += _ => StartCoroutine(currentWeapon.GetComponent<WeaponClass>().Reload());
         playerInputActions.Player.Switch.performed += OnScroll;
+        playerInputActions.Player.Crouch.performed += _ => Crouch(true);
+        playerInputActions.Player.Crouch.canceled += _ => Crouch(false);
+        playerInputActions.Player.Pause.performed += _ => Pause();
         
         // Rigidbody Variables
         playerRigidbody = GetComponent<Rigidbody>();
@@ -90,6 +97,7 @@ public class PlayerController : MonoBehaviour
     
     private void OnScroll(InputAction.CallbackContext ctx)
     {
+        if(isPaused) return;
         Vector2 scrollDelta = ctx.ReadValue<Vector2>();
         float scrollY = scrollDelta.y; // Vertical scrolling
         
@@ -109,9 +117,10 @@ public class PlayerController : MonoBehaviour
     // Movement Code
     private void Move()
     {
+        if(isPaused) return;
         Vector3 wishDirection = Vector3.Normalize(new Vector3(moveInput.x, 0, moveInput.y));
         wishDirection = transform.rotation * wishDirection;
-        Vector3 force = wishDirection * (moveSpeed * moveMultiplier);
+        Vector3 force = new Vector3(wishDirection.x * (moveSpeed * moveMultiplier), 0, wishDirection.z * (moveSpeed * moveMultiplier)); //Integral change, bount to x and z now
 
         playerRigidbody.AddForce(force, ForceMode.Impulse);
 
@@ -122,6 +131,7 @@ public class PlayerController : MonoBehaviour
     // Looking
     private void Look(InputAction.CallbackContext ctx)
     {
+        if(isPaused) return;
         this.GetComponent<Rigidbody>().freezeRotation = false;
         Vector2 mouseDelta = ctx.ReadValue<Vector2>();
 
@@ -135,6 +145,7 @@ public class PlayerController : MonoBehaviour
     // Jump logic, ERROR: player can jump twice? They aren't supposed to jump unless they touch the ground
     private void Jump()
     {
+        if(isPaused) return;
         if (isJump) return;
 
         isJump = true;
@@ -156,19 +167,40 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    //Fixed fire call to solve ctx issue
-    private void FireCurrentWeapon()
+    //Pause Logic
+    private void Pause()
     {
-        if (cloneWepMod != null && currentWeapon != null)
-        {
-            
-            currentWeapon.GetComponent<WeaponClass>().Fire();
-        }
-        else
-        {
-            Debug.Log("No weapon equipped");
-        }
+        pauseMenu.SetActive(true);
+        Cursor.lockState = CursorLockMode.None;
+        isPaused = true;
+        Time.timeScale = 0.0f;
     }
+
+    //ResumeLogic
+    public void Resume()
+    {
+        pauseMenu.SetActive(false);
+        Cursor.lockState = CursorLockMode.Locked;
+        isPaused = false;
+        Time.timeScale = 1.0f;
+    }
+
+    //quit application logic (For now, when we get main menu will change)
+    public void Quit()
+    {
+        Time.timeScale = 1.0f;
+        isPaused = false;
+        Application.Quit();
+    }
+
+    //crouch logic
+    private void Crouch(bool i)
+    {
+        if(isJump) return;
+        this.GetComponent<CapsuleCollider>().height = (i) ? 0.5f : hitboxHeight;
+    }
+
+    
 
     // Sprint logic modifies movement speed in fixed update
     private void Sprint(float i)
@@ -216,22 +248,28 @@ public class PlayerController : MonoBehaviour
         cloneWepMod.transform.SetParent(hand.transform);
         currentWeapon = cloneWepMod;
         WeaponClass currentWeaponGunClass = currentWeapon.GetComponent<WeaponClass>();
+        currentWeaponGunClass.playerController = this;
         gunText.text = (currentWeaponGunClass) ? "Weapon:" + currentWeaponGunClass.gunName : "Gun: " + currentWeaponGunClass.gunName;
         ammoText.text = (currentWeaponGunClass.isMelee) ? "Infinite" : "Ammo: " + currentWeaponGunClass.currRounds;
     }
 
     //Heal Stuff-will add slider logic when I have time
-    public IEnumerator Heal(int healAmount)
+    public IEnumerator HealPlayer(int healAmount)
     {
-        if (healAmount <= 0) yield break;
+        while (true)
         {
-            Debug.Log("Healing");
-            int healMin = Mathf.Min(maxHealth - health, healAmount);
-            health += healMin;
-            healthText.text = "HP: " + health;
-            yield return new WaitForSeconds(1f);
+            if (healAmount <= 0) yield break;
+            {
+                Debug.Log("Healing");
+                int healMin = Mathf.Min(maxHealth - health, healAmount);
+                health += healMin;
+                healthText.text = "HP: " + health;
+                yield return new WaitForSeconds(1f);
+            }
         }
+        
     }
+    
 
     //Take Damage From attacks
     public IEnumerator TakeDamage()
