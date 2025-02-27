@@ -1,19 +1,17 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
-using UnityEditor;
+using Unity.VisualScripting;
+using UnityEngine.Serialization;
 
 public class PlayerController : MonoBehaviour
 {
-    // NOTE: Header adds titles for public variables in hierarchy. 
-    // The OnEnable, Awake, OnDisable, FixedUpdate, OnCollisionEnter CANNOT have their names chaged even for camelcase or they WONT work
-
-    // Player references
+    // Internal player references
     private InputSystem_Actions playerInputActions;
     private Rigidbody playerRigidbody;
-    private WeaponClass currentWeapon;
 
     [Header("Movement Mechanics")] 
     public Vector2 moveInput;
@@ -24,72 +22,64 @@ public class PlayerController : MonoBehaviour
     public float dragCoefficient = 0.01f;
     public float maxSpeed = 20f;
 
-    [Header("Jump Mechanics")] public float jumpForce = 100f;
+    [Header("Jump Mechanics")] 
+    public float jumpForce = 100f;
     public bool isJump;
 
-    [Header("Sprint Mechanics")] public int stamina;
+    [Header("Sprint Mechanics")] 
+    public int stamina;
     public int maxStamina = 40;
     public int moveMultiplier = 1;
     public bool canSprint = true;
 
-    [Header("GunMechanics")] public Camera fpsCam;
+    [Header("GunMechanics")] 
     public TextMeshProUGUI ammoText;
     public TextMeshProUGUI gunText;
     public List<GameObject> weapons;
-    public GameObject currEquip;
     public GameObject cloneWepMod;
     public GameObject hand;
     public int currentGunIndex;
     public int totalAmmo;
-    public WeaponClass wp;
+    public GameObject currentWeapon;
 
-    [Header("HealTest")]
+    [Header("Health")] 
     public TextMeshProUGUI healthText;
-    public int HP;
-    public int healAmount;
-    public bool canHeal;
+    public int health = 100;
+    public int maxHealth = 100;
     
-
     // Play on awake, sets up player input system then moves are being stored, also initializes weapon system
     private void Awake()
     {
-        
-        
-        // Instantiate Input System
-        playerInputActions = new InputSystem_Actions();
-        
-        // Input callbacks
-        playerInputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
-        playerInputActions.Player.Move.canceled += ctx => moveInput = Vector2.zero;
-        playerInputActions.Player.Look.performed += ctx => Look(ctx);
-        playerInputActions.Player.Jump.performed += ctx => Jump();
-        playerInputActions.Player.Sprint.performed += ctx => Sprint(2f);
-        playerInputActions.Player.Sprint.canceled += ctx => Sprint(1f);
-        playerInputActions.Player.FireGun.performed += ctx => fireCurrentWeapon();
-        playerInputActions.Player.Reload.performed += ctx => StartCoroutine(wp.Reload());
-        playerInputActions.Player.Switch.performed += ctx => OnScroll(ctx);
-        
-        // Player callbacks
-        playerInputActions.Player.Heal.performed += ctx => StartCoroutine(Heal());
-    
         // Player variables 
-        fpsCam = Camera.main;
-        
-        currEquip = weapons[currentGunIndex];
+        currentWeapon = weapons[0];
         SwitchedGuns();
         
+        // Instantiate Input Systems
+        playerInputActions = new InputSystem_Actions();
 
-        Cursor.lockState = CursorLockMode.Locked;
-
+        // Input callbacks
+        playerInputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
+        playerInputActions.Player.Move.canceled += _ => moveInput = Vector2.zero;
+        playerInputActions.Player.Look.performed += Look;
+        playerInputActions.Player.Jump.performed += _ => Jump();
+        playerInputActions.Player.Sprint.performed += _ => Sprint(2f);
+        playerInputActions.Player.Sprint.canceled += _ => Sprint(1f);
+        playerInputActions.Player.FireGun.performed += _ => FireCurrentWeapon();
+        playerInputActions.Player.Reload.performed += _ => StartCoroutine(currentWeapon.GetComponent<WeaponClass>().Reload());
+        playerInputActions.Player.Switch.performed += OnScroll;
+        
         // Rigidbody Variables
         playerRigidbody = GetComponent<Rigidbody>();
         playerRigidbody.freezeRotation = true;
+        Debug.Log(playerRigidbody);
+        healthText.text = "HP: " + health;
     }
 
     // When script is enabled in play mode
     private void OnEnable()
     {
         playerInputActions.Enable();
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
     // When script is disabled via scene change or unload
@@ -97,42 +87,29 @@ public class PlayerController : MonoBehaviour
     {
         playerInputActions.Disable();
     }
-
     
-
     private void OnScroll(InputAction.CallbackContext ctx)
     {
         Vector2 scrollDelta = ctx.ReadValue<Vector2>();
         float scrollY = scrollDelta.y; // Vertical scrolling
-
-        Debug.Log($"Mouse Scroll: Vertical = {scrollY}");
-
-        currentGunIndex = (scrollY > 1) ? currentGunIndex +1 : currentGunIndex -1;
+        
+        currentGunIndex = (scrollY > 1) ? currentGunIndex + 1 : currentGunIndex - 1;
         currentGunIndex = (currentGunIndex < 0) ? (weapons.Count - 1) : currentGunIndex;
         currentGunIndex = (currentGunIndex >= weapons.Count) ? 0 : currentGunIndex;
-        currEquip = weapons[currentGunIndex];
+        currentWeapon = weapons[currentGunIndex];
         SwitchedGuns();
-
     }
 
-    // Called every frame, movement system via rigidbody and the playerinput
+    // Called every frame, movement system via rigidbody and the player input
     private void FixedUpdate()
     {
         Move();
-        if(playerInputActions.Player.FireGun.IsPressed() && wp != null)
-        {
-            if(wp.currRounds > 0)
-            {
-                wp.Fire();
-            }
-        }
     }
 
     // Movement Code
     private void Move()
     {
-        Vector3 wishDirection =
-            Vector3.Normalize(new Vector3(moveInput.x, 0, moveInput.y));
+        Vector3 wishDirection = Vector3.Normalize(new Vector3(moveInput.x, 0, moveInput.y));
         wishDirection = transform.rotation * wishDirection;
         Vector3 force = wishDirection * (moveSpeed * moveMultiplier);
 
@@ -149,11 +126,8 @@ public class PlayerController : MonoBehaviour
         Vector2 mouseDelta = ctx.ReadValue<Vector2>();
 
         rotationY += mouseDelta.x * rotationSpeed;
-        float tempY = mouseDelta.y is > -85 and < 85
-            ? mouseDelta.y * rotationSpeed
-            : 0;
+        float tempY = mouseDelta.y is > -85 and < 85 ? mouseDelta.y * rotationSpeed : 0;
         rotationX = Mathf.Clamp(-tempY + rotationX, -40, 70);
-
         transform.rotation = Quaternion.Euler(rotationX, rotationY, 0f);
         this.GetComponent<Rigidbody>().freezeRotation = true;
     }
@@ -183,11 +157,12 @@ public class PlayerController : MonoBehaviour
     }
 
     //Fixed fire call to solve ctx issue
-    private void fireCurrentWeapon()
+    private void FireCurrentWeapon()
     {
-        if(cloneWepMod != null && wp != null)
+        if (cloneWepMod != null && currentWeapon != null)
         {
-            wp.Fire();
+            
+            currentWeapon.GetComponent<WeaponClass>().Fire();
         }
         else
         {
@@ -195,7 +170,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    //sprint logic modifies movement speed in fixed update
+    // Sprint logic modifies movement speed in fixed update
     private void Sprint(float i)
     {
         if (stamina <= 0)
@@ -233,54 +208,37 @@ public class PlayerController : MonoBehaviour
     {
         if (cloneWepMod)
         {
-           Destroy(cloneWepMod);
-           cloneWepMod = null;
+            Destroy(cloneWepMod);
+            cloneWepMod = null;
         }
 
-        cloneWepMod = Instantiate(currEquip, hand.transform.position,
-           transform.rotation);
+        cloneWepMod = Instantiate(currentWeapon, hand.transform.position, transform.rotation);
         cloneWepMod.transform.SetParent(hand.transform);
-        wp = cloneWepMod.GetComponent<WeaponClass>();
-        gunText.text = (wp.isMelee) ? "Weapon:" + wp.gunName : "Gun: " + wp.gunName;
-        ammoText.text = (wp.isMelee) ? "Infinite" :"Ammo: " + wp.currRounds;
-        wp.playerCamera = Camera.main;
-        wp.playerController = this;
+        currentWeapon = cloneWepMod;
+        WeaponClass currentWeaponGunClass = currentWeapon.GetComponent<WeaponClass>();
+        gunText.text = (currentWeaponGunClass) ? "Weapon:" + currentWeaponGunClass.gunName : "Gun: " + currentWeaponGunClass.gunName;
+        ammoText.text = (currentWeaponGunClass.isMelee) ? "Infinite" : "Ammo: " + currentWeaponGunClass.currRounds;
     }
 
-    // Reloading logic 
-
-
-    
-
     //Heal Stuff-will add slider logic when I have time
-    private IEnumerator Heal()
+    public IEnumerator Heal(int healAmount)
     {
-        if(healAmount > 0)
+        if (healAmount <= 0) yield break;
         {
-            if(canHeal)
-            {
-                Debug.Log("Healing");
-                HP += (HP + 10 > 0) ? 0: 10; //temp
-                healthText.text = "HP: " + HP;
-                yield return new WaitForSeconds(1f);
-            }
-            else
-            {
-                Debug.Log("Stopped");
-            }
-            
+            Debug.Log("Healing");
+            int healMin = Mathf.Min(maxHealth - health, healAmount);
+            health += healMin;
+            healthText.text = "HP: " + health;
+            yield return new WaitForSeconds(1f);
         }
-        yield break;
     }
 
     //Take Damage From attacks
-    private IEnumerator TakeDamage()
+    public IEnumerator TakeDamage()
     {
         Debug.Log("Damage");
         yield break;
     }
-    
-
 
 
     // To do: crouch, aim, shoot and the rest of the game :/

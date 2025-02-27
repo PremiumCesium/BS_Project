@@ -19,16 +19,11 @@ public class BattleArea : MonoBehaviour
             {
                 Enemy.Add(col.gameObject);
             }
-            if(col.gameObject.GetComponent<PlayerController>() != null)
-            {
-                detectedPlayer = col.gameObject;
-                detectedPlayer.GetComponent<PlayerController>().canHeal = false;
-            }
         }
         Debug.Log(Enemy.Count);
         if(Enemy.Count > 0 && detectedPlayer != null)
         {  
-            detectedPlayer.GetComponent<PlayerController>().canHeal = false;
+
         }
     }
 
@@ -36,7 +31,7 @@ public class BattleArea : MonoBehaviour
     {
         if(Enemy.Count > 0 && detectedPlayer != null)
         {  
-            detectedPlayer.GetComponent<PlayerController>().canHeal = false;
+
         }
     }
 
@@ -47,13 +42,12 @@ public class BattleArea : MonoBehaviour
         {
             Enemy.Add(other.gameObject);
         }
-        if(other.gameObject.GetComponent<PlayerController>() != null)
-        {
-            detectedPlayer = other.gameObject;
-            if(Enemy.Count > 0 && detectedPlayer != null)
-            {  
-                detectedPlayer.GetComponent<PlayerController>().canHeal = false;
-            }
+
+        if (other.gameObject.GetComponent<PlayerController>() == null) return;
+        detectedPlayer = other.gameObject;
+        if(Enemy.Count > 0 && detectedPlayer != null)
+        {  
+
         }
     }
 
@@ -68,11 +62,8 @@ public class BattleArea : MonoBehaviour
                 }
             }
         }
-        if(other.gameObject.GetComponent<PlayerController>() != null)
-        {
-            detectedPlayer.GetComponent<PlayerController>().canHeal = true;
-            detectedPlayer = null;
-            
-        }
+
+        if (other.gameObject.GetComponent<PlayerController>() == null) return;
+        detectedPlayer = null;
     }
 }
