@@ -1,9 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
 using Unity.VisualScripting;
+using UnityEngine.Serialization;
 
 public class PlayerController : MonoBehaviour
 {
@@ -42,11 +44,9 @@ public class PlayerController : MonoBehaviour
 
     [Header("Health")] 
     public TextMeshProUGUI healthText;
-    public int hp;
-    public int healAmount;
-    public bool canHeal;
-
-
+    public int health = 100;
+    public int maxHealth = 100;
+    
     // Play on awake, sets up player input system then moves are being stored, also initializes weapon system
     private void Awake()
     {
@@ -67,14 +67,12 @@ public class PlayerController : MonoBehaviour
         playerInputActions.Player.FireGun.performed += _ => FireCurrentWeapon();
         playerInputActions.Player.Reload.performed += _ => StartCoroutine(currentWeapon.GetComponent<WeaponClass>().Reload());
         playerInputActions.Player.Switch.performed += OnScroll;
-
-        // Player callbacks
-        playerInputActions.Player.Heal.performed += _ => StartCoroutine(Heal());
         
         // Rigidbody Variables
         playerRigidbody = GetComponent<Rigidbody>();
         playerRigidbody.freezeRotation = true;
         Debug.Log(playerRigidbody);
+        healthText.text = "HP: " + health;
     }
 
     // When script is enabled in play mode
@@ -223,19 +221,15 @@ public class PlayerController : MonoBehaviour
     }
 
     //Heal Stuff-will add slider logic when I have time
-    private IEnumerator Heal()
+    public IEnumerator Heal(int healAmount)
     {
         if (healAmount <= 0) yield break;
-        if (canHeal)
         {
             Debug.Log("Healing");
-            hp += (hp + 10 > 0) ? 0 : 10; //temp
-            healthText.text = "HP: " + hp;
+            int healMin = Mathf.Min(maxHealth - health, healAmount);
+            health += healMin;
+            healthText.text = "HP: " + health;
             yield return new WaitForSeconds(1f);
-        }
-        else
-        {
-            Debug.Log("Stopped");
         }
     }
 

@@ -9,10 +9,15 @@ public class ItemPickup : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         PlayerController pc = other.gameObject.GetComponent<PlayerController>();
-        if(pc != null){
-            pc.healAmount += isHeal ? 10 : 0;
-            pc.totalAmmo += isAmmo ? ammoAmount : 0;
-            Destroy(this.gameObject);
+        if (pc == null) return;
+        
+        if (isHeal) 
+        {
+            pc.health += 20;
+            pc.healthText.text = "HP: " + pc.health;
         }
+        
+        pc.totalAmmo += isAmmo ? ammoAmount : 0;
+        Destroy(this.gameObject);
     }
 }
