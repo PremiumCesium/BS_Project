@@ -48,9 +48,17 @@ public class PlayerController : MonoBehaviour
     public int health = 100;
     public int maxHealth = 100;
 
-    [Header("Pausing")]
+    [Header("UI")]
+    //Menu
     public GameObject pauseMenu;
     public bool isPaused;
+    //Interact
+    public GameObject interactNot;
+
+    
+
+
+    
     // Play on awake, sets up player input system then moves are being stored, also initializes weapon system
     private void Awake()
     {
@@ -74,6 +82,7 @@ public class PlayerController : MonoBehaviour
         playerInputActions.Player.Crouch.performed += _ => Crouch(true);
         playerInputActions.Player.Crouch.canceled += _ => Crouch(false);
         playerInputActions.Player.Pause.performed += _ => Pause();
+        playerInputActions.Player.Interact.performed += _ => TestInteract();
         
         // Rigidbody Variables
         playerRigidbody = GetComponent<Rigidbody>();
@@ -112,6 +121,7 @@ public class PlayerController : MonoBehaviour
     private void FixedUpdate()
     {
         Move();
+        
     }
 
     // Movement Code
@@ -126,6 +136,29 @@ public class PlayerController : MonoBehaviour
 
         // Ensures the player will EVENTUALLY slow down, otherwise the player will be unable to stop to go AFK
         playerRigidbody.linearVelocity *= 1 - dragCoefficient;
+    }
+
+    //interact method
+    private void TestInteract()
+    {
+        if(isPaused) return;
+        RaycastHit hit;
+        if(Physics.Raycast(transform.position, transform.forward, out hit, 50f))
+        {
+            GameObject detectedObj= hit.transform.gameObject;
+            if(detectedObj.GetComponent<InteractableInterface>() != null)
+            {
+                detectedObj.GetComponent<InteractableInterface>().Interact();
+            }
+            else
+            {
+                Debug.Log("Failed");
+            }
+        }
+        else
+        {
+            Debug.Log("Failed");
+        }
     }
 
     // Looking

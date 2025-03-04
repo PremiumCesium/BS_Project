@@ -5,7 +5,7 @@ using Random = UnityEngine.Random;
 //[CreateAssetMenu(fileName = "Data", menuName = "ScriptableObjects/Weapons", order = 1)]
 public class WeaponClass : MonoBehaviour //ScriptableObject
 {
-    // Weapon properties
+    [Header("WeaponVariables")]
     public bool isMelee;
     public string gunName;
     public int damage;
@@ -15,17 +15,17 @@ public class WeaponClass : MonoBehaviour //ScriptableObject
     public float range;
     public float roundsPerSecond;
     
-    // Bullet spread logic
+    [Header("Bullet Spread")]
     public Vector3 bulletVariance;
     public bool bulletSpread;
     
-    // Internal variables
+    [Header("Instance Variables")]
     private bool isReloading;
     private float lastShootTime;
     private Camera playerCamera;
     public PlayerController playerController;
     
-    // Visuals
+    [Header("Visual Effects")]
     public GameObject gunModel;
     public ParticleSystem impactParticleSystem;
     public TrailRenderer bulletTrail;
@@ -51,6 +51,7 @@ public class WeaponClass : MonoBehaviour //ScriptableObject
                 if (Physics.Raycast(playerCamera.transform.position,
                         playerCamera.transform.forward, out RaycastHit hit, range))
                 {
+                    Debug.DrawRay(transform.position, hit.transform.forward, Color.green);
                     StartCoroutine(SpawnOnThatThang(trail, hit));
                     Debug.Log(hit.transform.name);
                     if(hit.transform.gameObject.GetComponent<EnemyInterface>() != null)
@@ -73,14 +74,18 @@ public class WeaponClass : MonoBehaviour //ScriptableObject
             if (!(lastShootTime + roundsPerSecond < Time.time)) return;
             
             Debug.Log("Started Swinging");
+            //Change to a collider based hitbox spawner after animation is implemented
             if (Physics.Raycast(playerCamera.transform.position,
                     playerCamera.transform.forward, out RaycastHit hit, range))
             {
                 Debug.Log(hit.transform.name);
+                Debug.DrawRay(transform.position, transform.forward, Color.green);
                 if(hit.transform.gameObject.GetComponent<EnemyInterface>() != null)
                 {
-                    hit.transform.gameObject.GetComponent<EnemyInterface>().TakeDamage(damage * (int)playerController.GetComponent<Rigidbody>().
-                        linearVelocity.x);
+                    int playCurrVelo = (int)playerController.GetComponent<Rigidbody>().linearVelocity.x;
+                    int calcDam = (Mathf.Abs(playCurrVelo) > 0) ? damage * playCurrVelo : damage;  
+                    hit.transform.gameObject.GetComponent<EnemyInterface>().TakeDamage(calcDam);
+                    Debug.Log(calcDam);
                 }
 
 

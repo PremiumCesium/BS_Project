@@ -105,12 +105,11 @@ MonoBehaviour:
   maxRounds: 4
   currRounds: 4
   reloadTime: 7
-  range: 25
+  range: 15
+  roundsPerSecond: 0
+  bulletVariance: {x: 0, y: 0, z: 0}
+  bulletSpread: 0
+  playerController: {fileID: 0}
   gunModel: {fileID: 8594162202919013409}
   impactParticleSystem: {fileID: 7781247778994770712, guid: 293c82be290d6c240aa92c077766e37c, type: 3}
   bulletTrail: {fileID: 8915521244497187083, guid: 3df870907be943a4a9c74c60857ae720, type: 3}
-  fps: 10000
-  bulletVariance: {x: 0, y: 0, z: 0}
-  bulletSpread: 0
-  playerCamera: {fileID: 0}
-  playerController: {fileID: 0}
