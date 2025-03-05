@@ -44,6 +44,7 @@ public class PlayerController : MonoBehaviour
     public GameObject currentWeapon;
 
     [Header("Health")] 
+    public Collider hitBox;
     public TextMeshProUGUI healthText;
     public int health = 100;
     public int maxHealth = 100;
@@ -121,9 +122,10 @@ public class PlayerController : MonoBehaviour
     private void FixedUpdate()
     {
         Move();
-        
-    }
 
+    }
+    
+    
     // Movement Code
     private void Move()
     {
@@ -200,6 +202,17 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    //Checks if player is in airs
+    private void OnCollisionExit(Collision other)
+    {
+        if (other.gameObject.CompareTag("Ground") &&
+            other.gameObject.transform.position.y <=
+            this.gameObject.transform.position.y)
+        {
+            isJump = true;
+        }
+    }
+    
     //Pause Logic
     private void Pause()
     {
@@ -296,6 +309,23 @@ public class PlayerController : MonoBehaviour
                 Debug.Log("Healing");
                 int healMin = Mathf.Min(maxHealth - health, healAmount);
                 health += healMin;
+                healthText.text = "HP: " + health;
+                yield return new WaitForSeconds(1f);
+            }
+        }
+        
+    }
+    
+    //Heal Stuff-will add slider logic when I have time
+    public IEnumerator DamagePlayer(int damageAmount)
+    {
+        while (true)
+        {
+            if (damageAmount <= 0) yield break;
+            {
+                Debug.Log("Damaging");
+                int healMin = Mathf.Min(maxHealth - health, damageAmount);
+                health -= healMin;
                 healthText.text = "HP: " + health;
                 yield return new WaitForSeconds(1f);
             }
