@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class BattleArea : MonoBehaviour
 {
-    public List<GameObject> Enemy;
+    public List<GameObject> Enemy; // This needs to be capitalized, please do not touch, it has dire consequences.
     public GameObject detectedPlayer;
     void Awake()
     {
