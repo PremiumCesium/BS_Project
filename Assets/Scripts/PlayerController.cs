@@ -13,11 +13,15 @@ public class PlayerController : MonoBehaviour
     // Player references
     private InputSystem_Actions playerInputActions;
     private Rigidbody playerRigidbody;
+<<<<<<< Updated upstream
     private WeaponClass currentWeapon;
+=======
+    private Camera playerCamera; // for walljump
+>>>>>>> Stashed changes
 
     [Header("Movement Mechanics")] 
     public Vector2 moveInput;
-    public float moveSpeed = 10f;
+    public float moveSpeed;
     public float rotationSpeed = 1f;
     public float rotationY;
     public float rotationX;
@@ -26,10 +30,13 @@ public class PlayerController : MonoBehaviour
 
     [Header("Jump Mechanics")] public float jumpForce = 100f;
     public bool isJump;
+    public bool isWallJump;
+    public bool collidedWithWall;
 
     [Header("Sprint Mechanics")] public int stamina;
     public int maxStamina = 40;
-    public int moveMultiplier = 1;
+    public float moveDefault;
+    public float moveSprint;
     public bool canSprint = true;
 
     [Header("GunMechanics")] public Camera fpsCam;
@@ -57,7 +64,14 @@ public class PlayerController : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         currEquip = weapons[currentGunIndex];
         SwitchedGuns();
+<<<<<<< Updated upstream
         fpsCam = Camera.main;
+=======
+        moveSpeed = moveDefault;
+        playerCamera = Camera.main;
+        
+        // Instantiate Input Systems
+>>>>>>> Stashed changes
         playerInputActions = new InputSystem_Actions();
         playerInputActions.Player.Move.performed +=
             ctx => moveInput = ctx.ReadValue<Vector2>();
@@ -75,6 +89,24 @@ public class PlayerController : MonoBehaviour
     
 
 
+<<<<<<< Updated upstream
+=======
+        // Input callbacks
+        playerInputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
+        playerInputActions.Player.Move.canceled += _ => moveInput = Vector2.zero;
+        playerInputActions.Player.Look.performed += Look;
+        playerInputActions.Player.Jump.performed += _ => Jump();
+        playerInputActions.Player.Sprint.performed += _ => Sprint(true);
+        playerInputActions.Player.Sprint.canceled += _ => Sprint(false);
+        playerInputActions.Player.FireGun.performed += _ => currentWeapon.GetComponent<WeaponClass>().Fire();
+        playerInputActions.Player.Reload.performed += _ => StartCoroutine(currentWeapon.GetComponent<WeaponClass>().Reload());
+        playerInputActions.Player.Switch.performed += OnScroll;
+        playerInputActions.Player.Crouch.performed += _ => Crouch(true);
+        playerInputActions.Player.Crouch.canceled += _ => Crouch(false);
+        playerInputActions.Player.Pause.performed += _ => Pause();
+        playerInputActions.Player.Interact.performed += _ => TestInteract();
+        
+>>>>>>> Stashed changes
         // Rigidbody Variables
         playerRigidbody = GetComponent<Rigidbody>();
         playerRigidbody.freezeRotation = true;
@@ -128,7 +160,11 @@ public class PlayerController : MonoBehaviour
         Vector3 wishDirection =
             Vector3.Normalize(new Vector3(moveInput.x, 0, moveInput.y));
         wishDirection = transform.rotation * wishDirection;
+<<<<<<< Updated upstream
         Vector3 force = wishDirection * (moveSpeed * moveMultiplier);
+=======
+        Vector3 force = new Vector3(wishDirection.x * (moveSpeed) * Time.deltaTime, 0, wishDirection.z * (moveSpeed) * Time.deltaTime); //Integral change, bount to x and z now
+>>>>>>> Stashed changes
 
         playerRigidbody.AddForce(force, ForceMode.Impulse);
 
@@ -139,6 +175,11 @@ public class PlayerController : MonoBehaviour
     // Looking
     private void Look(InputAction.CallbackContext ctx)
     {
+<<<<<<< Updated upstream
+=======
+        if(isPaused) return;
+        if(isWallJump) return;
+>>>>>>> Stashed changes
         this.GetComponent<Rigidbody>().freezeRotation = false;
         Vector2 mouseDelta = ctx.ReadValue<Vector2>();
 
@@ -155,14 +196,64 @@ public class PlayerController : MonoBehaviour
     // Jump logic, ERROR: player can jump twice? They aren't supposed to jump unless they touch the ground
     private void Jump()
     {
+<<<<<<< Updated upstream
         if (isJump) return;
+=======
+        if(isPaused) return;
+        if (isJump && isWallJump) return;
+>>>>>>> Stashed changes
 
-        isJump = true;
-        Debug.Log("Jump pressed");
+        if(isJump && !isWallJump)
+        {
+            WallJump();
+        }
+        else
+        {
+            isJump = true;
+            Debug.Log("Jump pressed");
 
+            this.GetComponent<Rigidbody>().AddForce(Vector3.up * jumpForce,
+                ForceMode.Impulse);
+        }
+
+        
+    }
+
+    //Wall Jump logic on FEIN
+    private void WallJump()
+    {
+        if (Physics.Raycast(playerCamera.transform.position, playerCamera.transform.forward, out RaycastHit hit, 10f))
+        {
+            if(hit.transform.CompareTag("Walls"))
+            {
+                Debug.Log("Detected Wall:Performing Jump");
+                isWallJump = true;
+                //cast to rotation variable quaternion
+                Quaternion angleJump = Quaternion.Euler(Mathf.Atan(hit.distance)-90f, transform.eulerAngles.y, transform.eulerAngles.z).normalized;
+                StartCoroutine(smoothAngleTransition(angleJump));
+            }
+        }
+    }
+
+    //for smooth ahh rotation-Need to Fix
+    private IEnumerator smoothAngleTransition(Quaternion jump)
+    {
+        //start a loop
+        while(Mathf.Abs(transform.eulerAngles.x - jump.eulerAngles.x) > 0.1f)
+        {
+            transform.rotation = Quaternion.Slerp(transform.rotation, jump, Time.deltaTime * 0.5f);
+            if(collidedWithWall)
+            {
+                break;
+            }
+            yield return null;
+        }
         this.GetComponent<Rigidbody>().AddForce(Vector3.up * jumpForce,
-            ForceMode.Impulse);
-        stamina -= 3;
+        ForceMode.Impulse);
+        transform.rotation = new Quaternion(transform.eulerAngles.x, -transform.eulerAngles.y, transform.eulerAngles.z, 0);
+        this.GetComponent<Rigidbody>().AddForce(transform.forward * 2.5f,
+        ForceMode.Impulse);
+        yield break;
     }
 
     //Checks if player is on ground
@@ -173,6 +264,11 @@ public class PlayerController : MonoBehaviour
             this.gameObject.transform.position.y)
         {
             isJump = false;
+            isWallJump = false;
+        }
+        if((other.gameObject.CompareTag("Walls")))
+        {
+            collidedWithWall = true;
         }
     }
 
@@ -189,18 +285,56 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+<<<<<<< Updated upstream
     //sprint logic modifies movement speed in fixed update
     private void Sprint(float i)
+=======
+    //ResumeLogic
+    public void Resume()
     {
-        if (stamina <= 0)
-        {
-            moveSpeed = 1f;
-            StartCoroutine(RegainStamina());
-            canSprint = false;
+        pauseMenu.SetActive(false);
+        Cursor.lockState = CursorLockMode.Locked;
+        isPaused = false;
+        Time.timeScale = 1.0f;
+    }
+
+    //quit application logic (For now, when we get main menu will change)
+    public void Quit()
+    {
+        Time.timeScale = 1.0f;
+        isPaused = false;
+        Application.Quit();
+    }
+
+    //crouch logic
+    private void Crouch(bool i)
+    {
+        if(isJump) return;
+        this.GetComponent<CapsuleCollider>().height = (i) ? 0.5f : hitboxHeight;
+    }
+
+    
+
+    // Sprint logic modifies movement speed in fixed update
+    private void Sprint(bool i)
+>>>>>>> Stashed changes
+    {
+        if(i){
+            if (stamina <= 0)
+            {
+                moveSpeed = moveDefault;
+                StartCoroutine(RegainStamina());
+                canSprint = false;
+            }
+            else
+            {
+                moveSpeed = moveSprint;
+            }
         }
         else
         {
-            moveSpeed = i;
+            moveSpeed = moveDefault;
+            StartCoroutine(RegainStamina());
         }
     }
 
@@ -210,7 +344,7 @@ public class PlayerController : MonoBehaviour
         if (stamina < 40)
         {
             stamina += 1;
-            yield return new WaitForSeconds(0.1f);
+            yield return new WaitForSeconds(0.01f);
             if (stamina == 40)
             {
                 canSprint = true;
