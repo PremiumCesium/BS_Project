@@ -29,6 +29,16 @@ public class PlayerController : MonoBehaviour
     public bool isWallJump;
     public bool collidedWithWall;
 
+    [Header("Wall Jump Mechanics")]
+    public LayerMask whatIsWall;
+    public float wallrunForce;
+    public float maxWallSpeed;
+    public bool isWallRight;
+    public bool isWallLeft;
+    public bool isWallRunning;
+    public float maxWallRunCameraTilt;
+    public float wallRunCameraTilt;
+
     [Header("Sprint Mechanics")] 
     public int stamina;
     public int maxStamina = 40;
@@ -134,15 +144,61 @@ public class PlayerController : MonoBehaviour
     private void Move()
     {
         if(isPaused) return;
+        CheckForWall();
         Vector3 wishDirection = Vector3.Normalize(new Vector3(moveInput.x, 0, moveInput.y));
         wishDirection = transform.rotation * wishDirection;
+        if(isWallLeft || isWallRight)
+        {
+            StartWallRun();
+            Debug.Log("StartingWallRun");
+        }
         Vector3 force = new Vector3(wishDirection.x * (moveSpeed * Time.deltaTime), 0, wishDirection.z * (moveSpeed * Time.deltaTime)); //Integral change, bount to x and z now
 
         playerRigidbody.AddForce(force, ForceMode.Impulse);
-
+        
         // Ensures the player will EVENTUALLY slow down, otherwise the player will be unable to stop to go AFK
         playerRigidbody.linearVelocity *= 1 - dragCoefficient;
+        
     }
+
+    //Wall run code
+    private void StartWallRun()
+    {
+        playerRigidbody.useGravity = false;
+        isWallRunning = true;
+        isWallJump = true;
+
+        if (playerRigidbody.velocity.magnitude <= maxWallSpeed)
+        {
+            playerRigidbody.AddForce(transform.forward * wallrunForce * Time.deltaTime);
+
+            //Make sure char sticks to wall
+            if (isWallRight)
+                playerRigidbody.AddForce(transform.right * wallrunForce / 5 * Time.deltaTime);
+            else
+                playerRigidbody.AddForce(-transform.right * wallrunForce / 5 * Time.deltaTime);
+        }
+    }
+
+    private void StopWallRun()
+    {
+        isWallRunning = false;
+        playerRigidbody.useGravity = true;
+    }
+
+    private void CheckForWall() //make sure to call in void Update
+    {
+        isWallRight = Physics.Raycast(transform.position, transform.right, 1f, whatIsWall);
+        isWallLeft = Physics.Raycast(transform.position, -transform.right, 1f, whatIsWall);
+
+        //leave wall run
+        if (!isWallLeft && !isWallRight) StopWallRun();
+        //reset double jump (if you have one :D)
+    }
+
+
+    
+
 
     //interact method
     private void TestInteract()
@@ -171,73 +227,45 @@ public class PlayerController : MonoBehaviour
     private void Look(InputAction.CallbackContext ctx)
     {
         if(isPaused) return;
-        this.GetComponent<Rigidbody>().freezeRotation = false;
+        if(isWallRunning) return;
+        playerRigidbody.freezeRotation = false;
         Vector2 mouseDelta = ctx.ReadValue<Vector2>();
 
         rotationY += mouseDelta.x * rotationSpeed;
         float tempY = mouseDelta.y is > -85 and < 85 ? mouseDelta.y * rotationSpeed : 0;
         rotationX = Mathf.Clamp(-tempY + rotationX, -40, 70);
         transform.rotation = Quaternion.Euler(rotationX, rotationY, 0f);
-        this.GetComponent<Rigidbody>().freezeRotation = true;
+        playerRigidbody.freezeRotation = true;
     }
 
     // Jump logic, ERROR: player can jump twice? They aren't supposed to jump unless they touch the ground
     private void Jump()
     {
         if(isPaused) return;
-        if (isJump && isWallJump) return;
-        if(isJump)
+        if (isJump && !isWallJump) return;
+        if(isWallJump && !isWallLeft && !isWallRight)
         {
-            WallJump();
+            isWallJump = false;
+            isWallLeft = false;
+            isWallRight = false;
+            isWallRunning = false;
+            playerRigidbody.AddForce(Vector3.up * jumpForce,
+            ForceMode.Impulse);
         }
-        isJump = true;
+        else
+        {
+            isJump = true;
         
-        Debug.Log("Jump pressed");
+            Debug.Log("Jump pressed");
 
-        this.GetComponent<Rigidbody>().AddForce(Vector3.up * jumpForce,
-            ForceMode.Impulse);
-    }
-
-    //Wall Jump logic on FEIN
-    private void WallJump()
-    {
-        if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, 10f))
-        {
-            if(hit.transform.CompareTag("Walls"))
-            {
-                Debug.Log("Detected Wall:Performing Jump");
-                isWallJump = true;
-                //cast to rotation variable quaternion(NEED TO IMPLEMENT CORRECTLY)
-                Quaternion angleJump = Quaternion.Euler(Mathf.Atan(hit.distance)-10f, 180f+transform.eulerAngles.y, transform.eulerAngles.z).normalized;
-                StartCoroutine(smoothAngleTransition(angleJump));
-            }
+            playerRigidbody.AddForce(Vector3.up * jumpForce,
+                ForceMode.Impulse);
         }
+            
+       
     }
 
-    //for smooth ahh rotation-Need to Fix
-    private IEnumerator smoothAngleTransition(Quaternion jump)
-    {
-        //start a loop
-        while(Mathf.Abs(transform.eulerAngles.x - jump.eulerAngles.x) > 0.1f)
-        {
-            isPaused = true;
-            transform.rotation = Quaternion.Slerp(transform.rotation, jump, Time.deltaTime * 0.5f);
-            if(collidedWithWall)
-            {
-                this.GetComponent<Rigidbody>().AddForce(Vector3.up * (jumpForce/2),
-            ForceMode.Impulse);
-                break;
-            }
-            yield return null;
-        }
-        transform.rotation = jump;
-        this.GetComponent<Rigidbody>().AddForce(transform.forward * 0.5f,
-            ForceMode.Impulse);
-        yield return new WaitForSeconds(0.5f);
-        isPaused = false;
-        yield break;
-        
-    }
+    
 
 
     //Checks if player is on ground
@@ -247,8 +275,11 @@ public class PlayerController : MonoBehaviour
             other.gameObject.transform.position.y <=
             this.gameObject.transform.position.y)
         {
+            isWallLeft = false;
+            isWallRight = false;
             isJump = false;
             isWallJump = false;
+            isWallRunning = false;
         }
         if((other.gameObject.CompareTag("Walls")))
         {
@@ -266,6 +297,17 @@ public class PlayerController : MonoBehaviour
         {
             isJump = true;
             
+        }
+        if (other.gameObject.CompareTag("Walls") &&
+            other.gameObject.transform.position.y <=
+            this.gameObject.transform.position.y)
+        {
+            collidedWithWall = false;
+            isWallLeft = false;
+            isWallRight = false;
+            isWallJump = false;
+            isWallRunning = false;
+            StopWallRun();
         }
     }
     

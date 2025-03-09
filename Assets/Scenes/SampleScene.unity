@@ -1314,6 +1314,13 @@ MonoBehaviour:
   isJump: 0
   isWallJump: 0
   collidedWithWall: 0
+  whatIsWall:
+    serializedVersion: 2
+    m_Bits: 8
+  wallrunForce: 10
+  maxWallSpeed: 15
+  maxWallRunCameraTilt: 30
+  wallRunCameraTilt: 15
   stamina: 0
   maxStamina: 40
   moveDefault: 10
@@ -1350,7 +1357,7 @@ GameObject:
   - component: {fileID: 745493250}
   - component: {fileID: 745493249}
   - component: {fileID: 745493248}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Cube (1)
   m_TagString: Walls
   m_Icon: {fileID: 0}
@@ -2157,7 +2164,7 @@ GameObject:
   - component: {fileID: 1143057571}
   - component: {fileID: 1143057570}
   - component: {fileID: 1143057569}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Cube (2)
   m_TagString: Walls
   m_Icon: {fileID: 0}
@@ -2579,7 +2586,7 @@ GameObject:
   - component: {fileID: 1527455840}
   - component: {fileID: 1527455839}
   - component: {fileID: 1527455838}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Cube
   m_TagString: Walls
   m_Icon: {fileID: 0}
