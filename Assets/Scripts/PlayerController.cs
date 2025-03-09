@@ -26,10 +26,14 @@ public class PlayerController : MonoBehaviour
     [Header("Jump Mechanics")] 
     public float jumpForce = 100f;
     public bool isJump;
+    public bool isWallJump;
+    public bool collidedWithWall;
 
     [Header("Sprint Mechanics")] 
     public int stamina;
     public int maxStamina = 40;
+    public float moveDefault;
+    public float moveSprint;
     public int moveMultiplier = 1;
     public bool canSprint = true;
 
@@ -66,7 +70,7 @@ public class PlayerController : MonoBehaviour
         // Player variables 
         currentWeapon = weapons[0];
         SwitchedGuns();
-        
+        moveSpeed = moveDefault;
         // Instantiate Input Systems
         playerInputActions = new InputSystem_Actions();
 
@@ -75,8 +79,8 @@ public class PlayerController : MonoBehaviour
         playerInputActions.Player.Move.canceled += _ => moveInput = Vector2.zero;
         playerInputActions.Player.Look.performed += Look;
         playerInputActions.Player.Jump.performed += _ => Jump();
-        playerInputActions.Player.Sprint.performed += _ => Sprint(2f);
-        playerInputActions.Player.Sprint.canceled += _ => Sprint(1f);
+        playerInputActions.Player.Sprint.performed += _ => Sprint(true);
+        playerInputActions.Player.Sprint.canceled += _ => Sprint(false);
         playerInputActions.Player.FireGun.performed += _ => currentWeapon.GetComponent<WeaponClass>().Fire();
         playerInputActions.Player.Reload.performed += _ => StartCoroutine(currentWeapon.GetComponent<WeaponClass>().Reload());
         playerInputActions.Player.Switch.performed += OnScroll;
@@ -132,7 +136,7 @@ public class PlayerController : MonoBehaviour
         if(isPaused) return;
         Vector3 wishDirection = Vector3.Normalize(new Vector3(moveInput.x, 0, moveInput.y));
         wishDirection = transform.rotation * wishDirection;
-        Vector3 force = new Vector3(wishDirection.x * (moveSpeed * moveMultiplier), 0, wishDirection.z * (moveSpeed * moveMultiplier)); //Integral change, bount to x and z now
+        Vector3 force = new Vector3(wishDirection.x * (moveSpeed * Time.deltaTime), 0, wishDirection.z * (moveSpeed * Time.deltaTime)); //Integral change, bount to x and z now
 
         playerRigidbody.AddForce(force, ForceMode.Impulse);
 
@@ -181,15 +185,60 @@ public class PlayerController : MonoBehaviour
     private void Jump()
     {
         if(isPaused) return;
-        if (isJump) return;
-
+        if (isJump && isWallJump) return;
+        if(isJump)
+        {
+            WallJump();
+        }
         isJump = true;
+        
         Debug.Log("Jump pressed");
 
         this.GetComponent<Rigidbody>().AddForce(Vector3.up * jumpForce,
             ForceMode.Impulse);
-        stamina -= 3;
     }
+
+    //Wall Jump logic on FEIN
+    private void WallJump()
+    {
+        if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, 10f))
+        {
+            if(hit.transform.CompareTag("Walls"))
+            {
+                Debug.Log("Detected Wall:Performing Jump");
+                isWallJump = true;
+                //cast to rotation variable quaternion(NEED TO IMPLEMENT CORRECTLY)
+                Quaternion angleJump = Quaternion.Euler(Mathf.Atan(hit.distance)-10f, 180f+transform.eulerAngles.y, transform.eulerAngles.z).normalized;
+                StartCoroutine(smoothAngleTransition(angleJump));
+            }
+        }
+    }
+
+    //for smooth ahh rotation-Need to Fix
+    private IEnumerator smoothAngleTransition(Quaternion jump)
+    {
+        //start a loop
+        while(Mathf.Abs(transform.eulerAngles.x - jump.eulerAngles.x) > 0.1f)
+        {
+            isPaused = true;
+            transform.rotation = Quaternion.Slerp(transform.rotation, jump, Time.deltaTime * 0.5f);
+            if(collidedWithWall)
+            {
+                this.GetComponent<Rigidbody>().AddForce(Vector3.up * (jumpForce/2),
+            ForceMode.Impulse);
+                break;
+            }
+            yield return null;
+        }
+        transform.rotation = jump;
+        this.GetComponent<Rigidbody>().AddForce(transform.forward * 0.5f,
+            ForceMode.Impulse);
+        yield return new WaitForSeconds(0.5f);
+        isPaused = false;
+        yield break;
+        
+    }
+
 
     //Checks if player is on ground
     private void OnCollisionEnter(Collision other)
@@ -199,7 +248,13 @@ public class PlayerController : MonoBehaviour
             this.gameObject.transform.position.y)
         {
             isJump = false;
+            isWallJump = false;
         }
+        if((other.gameObject.CompareTag("Walls")))
+        {
+            collidedWithWall = true;
+        }
+    
     }
 
     //Checks if player is in airs
@@ -210,6 +265,7 @@ public class PlayerController : MonoBehaviour
             this.gameObject.transform.position.y)
         {
             isJump = true;
+            
         }
     }
     
@@ -249,18 +305,26 @@ public class PlayerController : MonoBehaviour
     
 
     // Sprint logic modifies movement speed in fixed update
-    private void Sprint(float i)
+    private void Sprint(bool i)
     {
+        if(i){
+            if (stamina > 0)
+            {
+                moveSpeed = moveSprint;
+            }
+        }
+        else
+        {
+            moveSpeed = moveDefault;
+        }
+        
         if (stamina <= 0)
         {
             moveSpeed = 1f;
             StartCoroutine(RegainStamina());
             canSprint = false;
         }
-        else
-        {
-            moveSpeed = i;
-        }
+
     }
 
     // Stamina logic

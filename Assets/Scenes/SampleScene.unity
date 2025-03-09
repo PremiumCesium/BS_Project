@@ -1312,8 +1312,12 @@ MonoBehaviour:
   hitboxHeight: 2.01611
   jumpForce: 5
   isJump: 0
+  isWallJump: 0
+  collidedWithWall: 0
   stamina: 0
   maxStamina: 40
+  moveDefault: 10
+  moveSprint: 20
   moveMultiplier: 1
   canSprint: 0
   ammoText: {fileID: 1724172183}
@@ -1327,6 +1331,7 @@ MonoBehaviour:
   currentGunIndex: 0
   totalAmmo: 100
   currentWeapon: {fileID: 0}
+  hitBox: {fileID: 0}
   healthText: {fileID: 1148322034}
   health: 2
   maxHealth: 100
@@ -1347,7 +1352,7 @@ GameObject:
   - component: {fileID: 745493248}
   m_Layer: 0
   m_Name: Cube (1)
-  m_TagString: Ground
+  m_TagString: Walls
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2154,7 +2159,7 @@ GameObject:
   - component: {fileID: 1143057569}
   m_Layer: 0
   m_Name: Cube (2)
-  m_TagString: Ground
+  m_TagString: Walls
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2576,7 +2581,7 @@ GameObject:
   - component: {fileID: 1527455838}
   m_Layer: 0
   m_Name: Cube
-  m_TagString: Ground
+  m_TagString: Walls
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -3341,7 +3346,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -246, y: 273}
+  m_AnchoredPosition: {x: -246, y: 218}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2036141894
